@@ -18,7 +18,7 @@ import (
 	"github.com/Alorun/stonekv/proto/pkg/errorpb"
 	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
 	"github.com/Alorun/stonekv/proto/pkg/raft_cmdpb"
-	"github.com/Alorun/stonekv/proto/pkg/tinykvpb"
+	"github.com/Alorun/stonekv/proto/pkg/stonekvpb"
 	"github.com/pingcap/errors"
 )
 
@@ -149,7 +149,7 @@ func (rs *RaftStorage) Reader(ctx *kvrpcpb.Context) (storage.StorageReader, erro
 	return NewRegionReader(cb.Txn, *resp.Responses[0].GetSnap().Region), nil
 }
 
-func (rs *RaftStorage) Raft(stream tinykvpb.TinyKv_RaftServer) error {
+func (rs *RaftStorage) Raft(stream stonekvpb.StoneKv_RaftServer) error {
 	for {
 		msg, err := stream.Recv()
 		if err != nil {
@@ -159,7 +159,7 @@ func (rs *RaftStorage) Raft(stream tinykvpb.TinyKv_RaftServer) error {
 	}
 }
 
-func (rs *RaftStorage) Snapshot(stream tinykvpb.TinyKv_SnapshotServer) error {
+func (rs *RaftStorage) Snapshot(stream stonekvpb.StoneKv_SnapshotServer) error {
 	var err error
 	done := make(chan struct{})
 	rs.snapWorker.Sender() <- &recvSnapTask{

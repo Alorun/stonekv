@@ -16,7 +16,7 @@ import (
 	"github.com/Alorun/stonekv/kv/storage/raft_storage"
 	"github.com/Alorun/stonekv/kv/storage/standalone_storage"
 	"github.com/Alorun/stonekv/log"
-	"github.com/Alorun/stonekv/proto/pkg/tinykvpb"
+	"github.com/Alorun/stonekv/proto/pkg/stonekvpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -70,7 +70,7 @@ func main() {
 		grpc.InitialConnWindowSize(1<<30),
 		grpc.MaxRecvMsgSize(10*1024*1024),
 	)
-	tinykvpb.RegisterTinyKvServer(grpcServer, server)
+	stonekvpb.RegisterStoneKvServer(grpcServer, server)
 	listenAddr := conf.StoreAddr[strings.IndexByte(conf.StoreAddr, ':'):]
 	l, err := net.Listen("tcp", listenAddr)
 	if err != nil {

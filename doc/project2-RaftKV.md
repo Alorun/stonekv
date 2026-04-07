@@ -76,7 +76,7 @@ In project1 you have implemented a standalone kv server, so you should already b
 
 Before introducing the code, you need to understand three terms first: `Store`, `Peer` and `Region` which are defined in `proto/proto/metapb.proto`.
 
-- Store stands for an instance of tinykv-server
+- Store stands for an instance of stonekv-server
 - Peer stands for a Raft node which is running on a Store
 - Region is a collection of Peers, also called Raft group
 

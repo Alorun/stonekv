@@ -11,7 +11,7 @@ The project can be broken down into 2 steps, including:
 
 ### The Code
 
-The `gRPC` server is initialized in `kv/main.go` and it contains a `tinykv.Server` which provides a `gRPC` service named `TinyKv`. It was defined by [protocol-buffer]( https://developers.google.com/protocol-buffers ) in `proto/proto/tinykvpb.proto`, and the detail of rpc requests and responses are defined in `proto/proto/kvrpcpb.proto`.
+The `gRPC` server is initialized in `kv/main.go` and it contains a `stonekv.Server` which provides a `gRPC` service named `StoneKv`. It was defined by [protocol-buffer]( https://developers.google.com/protocol-buffers ) in `proto/proto/stonekvpb.proto`, and the detail of rpc requests and responses are defined in `proto/proto/kvrpcpb.proto`.
 
 Generally, you don’t need to change the proto files because all necessary fields have been defined for you. But if you still need to change, you can modify the proto file and run `make proto` to update related generated go code in `proto/pkg/xxx/xxx.pb.go`.
 

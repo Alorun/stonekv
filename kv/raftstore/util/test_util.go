@@ -10,7 +10,7 @@ import (
 func NewTestEngines() *engine_util.Engines {
 	engines := new(engine_util.Engines)
 	var err error
-	engines.KvPath, err = ioutil.TempDir("", "tinykv_kv")
+	engines.KvPath, err = ioutil.TempDir("", "stonekv_kv")
 	if err != nil {
 		panic("create kv dir failed")
 	}
@@ -22,7 +22,7 @@ func NewTestEngines() *engine_util.Engines {
 	if err != nil {
 		panic("open kv db failed")
 	}
-	engines.RaftPath, err = ioutil.TempDir("", "tinykv_raft")
+	engines.RaftPath, err = ioutil.TempDir("", "stonekv_raft")
 	if err != nil {
 		panic("create raft dir failed")
 	}

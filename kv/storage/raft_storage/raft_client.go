@@ -8,14 +8,14 @@ import (
 	"github.com/Alorun/stonekv/kv/config"
 	"github.com/Alorun/stonekv/log"
 	"github.com/Alorun/stonekv/proto/pkg/raft_serverpb"
-	"github.com/Alorun/stonekv/proto/pkg/tinykvpb"
+	"github.com/Alorun/stonekv/proto/pkg/stonekvpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
 
 type raftConn struct {
 	streamMu sync.Mutex
-	stream   tinykvpb.TinyKv_RaftClient
+	stream   stonekvpb.StoneKv_RaftClient
 	ctx      context.Context
 	cancel   context.CancelFunc
 }
@@ -32,7 +32,7 @@ func newRaftConn(addr string, cfg *config.Config) (*raftConn, error) {
 		return nil, err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	stream, err := tinykvpb.NewTinyKvClient(cc).Raft(ctx)
+	stream, err := stonekvpb.NewStoneKvClient(cc).Raft(ctx)
 	if err != nil {
 		cancel()
 		return nil, err

@@ -12,7 +12,7 @@ import (
 	"github.com/Alorun/stonekv/kv/util/worker"
 	"github.com/Alorun/stonekv/log"
 	"github.com/Alorun/stonekv/proto/pkg/raft_serverpb"
-	"github.com/Alorun/stonekv/proto/pkg/tinykvpb"
+	"github.com/Alorun/stonekv/proto/pkg/stonekvpb"
 	"github.com/pingcap/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -25,7 +25,7 @@ type sendSnapTask struct {
 }
 
 type recvSnapTask struct {
-	stream   tinykvpb.TinyKv_SnapshotServer
+	stream   stonekvpb.StoneKv_SnapshotServer
 	callback func(error)
 }
 
@@ -86,7 +86,7 @@ func (r *snapRunner) sendSnap(addr string, msg *raft_serverpb.RaftMessage) error
 	if err != nil {
 		return err
 	}
-	client := tinykvpb.NewTinyKvClient(cc)
+	client := stonekvpb.NewStoneKvClient(cc)
 	stream, err := client.Snapshot(context.TODO())
 	if err != nil {
 		return err
@@ -127,7 +127,7 @@ func (r *snapRunner) recv(t *recvSnapTask) {
 	t.callback(err)
 }
 
-func (r *snapRunner) recvSnap(stream tinykvpb.TinyKv_SnapshotServer) (*raft_serverpb.RaftMessage, error) {
+func (r *snapRunner) recvSnap(stream stonekvpb.StoneKv_SnapshotServer) (*raft_serverpb.RaftMessage, error) {
 	head, err := stream.Recv()
 	if err != nil {
 		return nil, err

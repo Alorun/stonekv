@@ -9,11 +9,11 @@ import (
 	"github.com/Alorun/stonekv/kv/transaction/latches"
 	coppb "github.com/Alorun/stonekv/proto/pkg/coprocessor"
 	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
-	"github.com/Alorun/stonekv/proto/pkg/tinykvpb"
+	"github.com/Alorun/stonekv/proto/pkg/stonekvpb"
 	"github.com/pingcap/tidb/kv"
 )
 
-var _ tinykvpb.TinyKvServer = new(Server)
+var _ stonekvpb.StoneKvServer = new(Server)
 
 // Server is a TinyKV server, it 'faces outwards', sending and receiving messages from clients such as TinySQL.
 type Server struct {
@@ -33,17 +33,17 @@ func NewServer(storage storage.Storage) *Server {
 	}
 }
 
-// The below functions are Server's gRPC API (implements TinyKvServer).
+// The below functions are Server's gRPC API (implements StoneKvServer).
 
-// Raft commands (tinykv <-> tinykv)
+// Raft commands (stonekv <-> stonekv)
 // Only used for RaftStorage, so trivially forward it.
-func (server *Server) Raft(stream tinykvpb.TinyKv_RaftServer) error {
+func (server *Server) Raft(stream stonekvpb.StoneKv_RaftServer) error {
 	return server.storage.(*raft_storage.RaftStorage).Raft(stream)
 }
 
-// Snapshot stream (tinykv <-> tinykv)
+// Snapshot stream (stonekv <-> stonekv)
 // Only used for RaftStorage, so trivially forward it.
-func (server *Server) Snapshot(stream tinykvpb.TinyKv_SnapshotServer) error {
+func (server *Server) Snapshot(stream stonekvpb.StoneKv_SnapshotServer) error {
 	return server.storage.(*raft_storage.RaftStorage).Snapshot(stream)
 }
 

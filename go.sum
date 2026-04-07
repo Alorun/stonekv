@@ -189,6 +189,7 @@ github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/9
 github.com/pelletier/go-toml v1.3.0/go.mod h1:PN7xzY2wHTK0K9p34ErDQMlFxa51Fk0OUruD3k1mMwo=
 github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99 h1:KcEvVBAvyHkUdFAygKAzwB6LAcZ6LS32WHmRD2VyXMI=
 github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99/go.mod h1:HUpKUBZnpzkdx0kD/+Yfuft+uD3zHGtXF/XJB14TUr4=
+github.com/pingcap-incubator/tinykv v0.0.0-20200514052412-e01d729bd45c h1:hHXu6vMCsul2JaC8EvkR/hxHy5QCltQJaLpxLLUE+c0=
 github.com/pingcap-incubator/tinykv v0.0.0-20200514052412-e01d729bd45c/go.mod h1:e+sPmTjmI5GuHGv0+sFdz8uvGw2WOrM9wRk0PJWs1VY=
 github.com/pingcap-incubator/tinysql v0.0.0-20200518090433-a7d00f9e6aa7 h1:OmyyQb7aA70tZX+LFzixFtNocNl/VIx0QyfYaoDN9iA=
 github.com/pingcap-incubator/tinysql v0.0.0-20200518090433-a7d00f9e6aa7/go.mod h1:yuleLQAIKLLe1wiHaX1WdEyCF7K3JKJ9KfaqglC7Nqc=

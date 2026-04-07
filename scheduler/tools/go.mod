@@ -1,4 +1,4 @@
-module github.com/pingcap-incubator/tinykv/scheduler/_tools
+module github.com/pingcap-incubator/stonekv/scheduler/_tools
 
 go 1.13
 

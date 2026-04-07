@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-PROJECT=tinykv
+PROJECT=stonekv
 GOPATH ?= $(shell go env GOPATH)
 
 # Ensure GOPATH is set before running build process.
@@ -37,7 +37,7 @@ proto:
 	GO111MODULE=on go build ./proto/pkg/...
 
 kv:
-	$(GOBUILD) -o bin/tinykv-server kv/main.go
+	$(GOBUILD) -o bin/stonekv-server kv/main.go
 
 scheduler:
 	$(GOBUILD) -o bin/tinyscheduler-server scheduler/main.go

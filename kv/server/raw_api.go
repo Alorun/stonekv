@@ -5,7 +5,7 @@ import (
 	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
 )
 
-// The functions below are Server's Raw API. (implements TinyKvServer).
+// The functions below are Server's Raw API. (implements StoneKvServer).
 // Some helper methods can be found in sever.go in the current directory
 
 // RawGet return the corresponding Get response based on RawGetRequest's CF and Key fields

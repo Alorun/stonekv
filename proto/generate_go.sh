@@ -24,7 +24,7 @@ if [ -z $(go env GOPATH) ]; then
     exit 1
 fi
 GOPATH=$(go env GOPATH)
-GO_PREFIX_PATH=github.com/pingcap-incubator/tinykv/proto/pkg
+GO_PREFIX_PATH=github.com/pingcap-incubator/stonekv/proto/pkg
 export PATH=$(pwd)/tools/bin:$GOPATH/bin:$PATH
 
 echo "install tools..."

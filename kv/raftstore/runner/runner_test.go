@@ -40,7 +40,7 @@ func newEnginesWithKVDb(t *testing.T, kv *badger.DB) *engine_util.Engines {
 	engines := new(engine_util.Engines)
 	engines.Kv = kv
 	var err error
-	engines.RaftPath, err = ioutil.TempDir("", "tinykv_raft")
+	engines.RaftPath, err = ioutil.TempDir("", "stonekv_raft")
 	require.Nil(t, err)
 	raftOpts := badger.DefaultOptions
 	raftOpts.Dir = engines.RaftPath

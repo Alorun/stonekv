@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pingcap-incubator/tinykv/kv/config"
+	"github.com/pingcap-incubator/stonekv/kv/config"
 )
 
 func TestReadWrite(t *testing.T) {

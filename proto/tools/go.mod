@@ -1,4 +1,4 @@
-module github.com/pingcap-incubator/tinykv/proto/_tools
+module github.com/pingcap-incubator/stonekv/proto/_tools
 
 require (
 	github.com/gogo/protobuf v1.3.2
