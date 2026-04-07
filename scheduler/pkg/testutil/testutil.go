@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pingcap-incubator/tinykv/proto/pkg/schedulerpb"
-	"github.com/pingcap-incubator/tinykv/scheduler/server/config"
+	"github.com/Alorun/stonekv/proto/pkg/schedulerpb"
+	"github.com/Alorun/stonekv/scheduler/server/config"
 	check "github.com/pingcap/check"
 	"google.golang.org/grpc"
 )

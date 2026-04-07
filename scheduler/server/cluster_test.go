@@ -19,12 +19,12 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/schedulerpb"
-	"github.com/pingcap-incubator/tinykv/scheduler/pkg/mock/mockid"
-	"github.com/pingcap-incubator/tinykv/scheduler/pkg/testutil"
-	"github.com/pingcap-incubator/tinykv/scheduler/server/core"
-	"github.com/pingcap-incubator/tinykv/scheduler/server/kv"
+	"github.com/Alorun/stonekv/proto/pkg/metapb"
+	"github.com/Alorun/stonekv/proto/pkg/schedulerpb"
+	"github.com/Alorun/stonekv/scheduler/pkg/mock/mockid"
+	"github.com/Alorun/stonekv/scheduler/pkg/testutil"
+	"github.com/Alorun/stonekv/scheduler/server/core"
+	"github.com/Alorun/stonekv/scheduler/server/kv"
 	. "github.com/pingcap/check"
 )
 

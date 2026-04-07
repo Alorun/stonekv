@@ -14,7 +14,7 @@
 
 package raft
 
-import pb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
+import pb "github.com/Alorun/stonekv/proto/pkg/eraftpb"
 
 // RaftLog manage the log entries, its struct look like:
 //

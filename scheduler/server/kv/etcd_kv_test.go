@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/pingcap-incubator/tinykv/scheduler/pkg/tempurl"
+	"github.com/Alorun/stonekv/scheduler/pkg/tempurl"
 	. "github.com/pingcap/check"
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/embed"

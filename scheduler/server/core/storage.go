@@ -21,8 +21,8 @@ import (
 	"strings"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
-	"github.com/pingcap-incubator/tinykv/scheduler/server/kv"
+	"github.com/Alorun/stonekv/proto/pkg/metapb"
+	"github.com/Alorun/stonekv/scheduler/server/kv"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/clientv3"
 )

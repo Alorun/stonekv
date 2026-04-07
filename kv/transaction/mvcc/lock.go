@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/pingcap-incubator/tinykv/kv/util/engine_util"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/kvrpcpb"
+	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
 )
 
 const TsMax uint64 = ^uint64(0)

@@ -20,9 +20,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
-	"github.com/pingcap-incubator/tinykv/scheduler/pkg/mock/mockid"
-	"github.com/pingcap-incubator/tinykv/scheduler/server/id"
+	"github.com/Alorun/stonekv/proto/pkg/metapb"
+	"github.com/Alorun/stonekv/scheduler/pkg/mock/mockid"
+	"github.com/Alorun/stonekv/scheduler/server/id"
 	. "github.com/pingcap/check"
 )
 

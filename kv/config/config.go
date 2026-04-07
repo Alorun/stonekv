@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/pingcap-incubator/tinykv/log"
+	"github.com/Alorun/stonekv/log"
 )
 
 type Config struct {

@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pingcap-incubator/tinykv/kv/config"
-	"github.com/pingcap-incubator/tinykv/log"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/raft_serverpb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/tinykvpb"
+	"github.com/Alorun/stonekv/kv/config"
+	"github.com/Alorun/stonekv/log"
+	"github.com/Alorun/stonekv/proto/pkg/raft_serverpb"
+	"github.com/Alorun/stonekv/proto/pkg/tinykvpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )

@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/kvrpcpb"
+	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
 )
 
 // The functions below are Server's Raw API. (implements TinyKvServer).

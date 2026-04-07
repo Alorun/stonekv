@@ -3,13 +3,13 @@ package server
 import (
 	"context"
 
-	"github.com/pingcap-incubator/tinykv/kv/coprocessor"
-	"github.com/pingcap-incubator/tinykv/kv/storage"
-	"github.com/pingcap-incubator/tinykv/kv/storage/raft_storage"
-	"github.com/pingcap-incubator/tinykv/kv/transaction/latches"
-	coppb "github.com/pingcap-incubator/tinykv/proto/pkg/coprocessor"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/kvrpcpb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/tinykvpb"
+	"github.com/Alorun/stonekv/kv/coprocessor"
+	"github.com/Alorun/stonekv/kv/storage"
+	"github.com/Alorun/stonekv/kv/storage/raft_storage"
+	"github.com/Alorun/stonekv/kv/transaction/latches"
+	coppb "github.com/Alorun/stonekv/proto/pkg/coprocessor"
+	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
+	"github.com/Alorun/stonekv/proto/pkg/tinykvpb"
 	"github.com/pingcap/tidb/kv"
 )
 

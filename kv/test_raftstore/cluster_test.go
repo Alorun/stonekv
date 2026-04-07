@@ -1,8 +1,8 @@
 package test_raftstore
 
 import (
-	"github.com/pingcap-incubator/tinykv/kv/config"
-	"github.com/pingcap-incubator/tinykv/log"
+	"github.com/Alorun/stonekv/kv/config"
+	"github.com/Alorun/stonekv/log"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

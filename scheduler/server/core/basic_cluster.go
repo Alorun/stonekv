@@ -16,7 +16,7 @@ package core
 import (
 	"sync"
 
-	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
+	"github.com/Alorun/stonekv/proto/pkg/metapb"
 )
 
 // BasicCluster provides basic data member and interface for a tikv cluster.

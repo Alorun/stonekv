@@ -3,10 +3,10 @@ package mvcc
 import (
 	"encoding/binary"
 
-	"github.com/pingcap-incubator/tinykv/kv/storage"
-	"github.com/pingcap-incubator/tinykv/kv/util/codec"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/kvrpcpb"
-	"github.com/pingcap-incubator/tinykv/scheduler/pkg/tsoutil"
+	"github.com/Alorun/stonekv/kv/storage"
+	"github.com/Alorun/stonekv/kv/util/codec"
+	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
+	"github.com/Alorun/stonekv/scheduler/pkg/tsoutil"
 )
 
 // KeyError is a wrapper type so we can implement the `error` interface.

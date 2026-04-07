@@ -6,12 +6,12 @@ import (
 	"sync"
 
 	"github.com/google/btree"
-	"github.com/pingcap-incubator/tinykv/kv/raftstore/util"
-	"github.com/pingcap-incubator/tinykv/kv/util/engine_util"
-	"github.com/pingcap-incubator/tinykv/log"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/schedulerpb"
+	"github.com/Alorun/stonekv/kv/raftstore/util"
+	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/log"
+	"github.com/Alorun/stonekv/proto/pkg/eraftpb"
+	"github.com/Alorun/stonekv/proto/pkg/metapb"
+	"github.com/Alorun/stonekv/proto/pkg/schedulerpb"
 	"github.com/pingcap/errors"
 )
 

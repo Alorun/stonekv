@@ -7,15 +7,15 @@ import (
 
 	"github.com/Connor1996/badger"
 	"github.com/juju/errors"
-	"github.com/pingcap-incubator/tinykv/kv/raftstore/meta"
-	"github.com/pingcap-incubator/tinykv/kv/raftstore/snap"
-	"github.com/pingcap-incubator/tinykv/kv/raftstore/util"
-	"github.com/pingcap-incubator/tinykv/kv/util/engine_util"
-	"github.com/pingcap-incubator/tinykv/kv/util/worker"
-	"github.com/pingcap-incubator/tinykv/log"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
-	rspb "github.com/pingcap-incubator/tinykv/proto/pkg/raft_serverpb"
+	"github.com/Alorun/stonekv/kv/raftstore/meta"
+	"github.com/Alorun/stonekv/kv/raftstore/snap"
+	"github.com/Alorun/stonekv/kv/raftstore/util"
+	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/kv/util/worker"
+	"github.com/Alorun/stonekv/log"
+	"github.com/Alorun/stonekv/proto/pkg/eraftpb"
+	"github.com/Alorun/stonekv/proto/pkg/metapb"
+	rspb "github.com/Alorun/stonekv/proto/pkg/raft_serverpb"
 )
 
 // There're some tasks for region worker, such as:

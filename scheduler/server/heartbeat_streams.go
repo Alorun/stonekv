@@ -18,10 +18,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/schedulerpb"
-	"github.com/pingcap-incubator/tinykv/scheduler/pkg/logutil"
-	"github.com/pingcap-incubator/tinykv/scheduler/server/core"
+	"github.com/Alorun/stonekv/proto/pkg/metapb"
+	"github.com/Alorun/stonekv/proto/pkg/schedulerpb"
+	"github.com/Alorun/stonekv/scheduler/pkg/logutil"
+	"github.com/Alorun/stonekv/scheduler/server/core"
 	"github.com/pingcap/log"
 	"go.uber.org/zap"
 )

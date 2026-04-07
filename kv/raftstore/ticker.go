@@ -3,8 +3,8 @@ package raftstore
 import (
 	"time"
 
-	"github.com/pingcap-incubator/tinykv/kv/config"
-	"github.com/pingcap-incubator/tinykv/kv/raftstore/message"
+	"github.com/Alorun/stonekv/kv/config"
+	"github.com/Alorun/stonekv/kv/raftstore/message"
 )
 
 type ticker struct {

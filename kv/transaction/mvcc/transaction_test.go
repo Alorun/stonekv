@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/pingcap-incubator/tinykv/kv/util/engine_util"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/kvrpcpb"
+	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
 
-	"github.com/pingcap-incubator/tinykv/kv/storage"
+	"github.com/Alorun/stonekv/kv/storage"
 	"github.com/stretchr/testify/assert"
 )
 

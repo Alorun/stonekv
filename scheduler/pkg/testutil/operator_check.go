@@ -14,7 +14,7 @@
 package testutil
 
 import (
-	"github.com/pingcap-incubator/tinykv/scheduler/server/schedule/operator"
+	"github.com/Alorun/stonekv/scheduler/server/schedule/operator"
 	check "github.com/pingcap/check"
 )
 

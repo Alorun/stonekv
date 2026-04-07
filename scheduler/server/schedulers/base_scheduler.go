@@ -18,8 +18,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pingcap-incubator/tinykv/scheduler/server/schedule"
-	"github.com/pingcap-incubator/tinykv/scheduler/server/schedule/opt"
+	"github.com/Alorun/stonekv/scheduler/server/schedule"
+	"github.com/Alorun/stonekv/scheduler/server/schedule/opt"
 	"github.com/pingcap/log"
 )
 

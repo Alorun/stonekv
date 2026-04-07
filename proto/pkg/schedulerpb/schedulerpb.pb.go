@@ -12,9 +12,9 @@ import (
 
 	_ "github.com/gogo/protobuf/gogoproto"
 
-	eraftpb "github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
+	eraftpb "github.com/Alorun/stonekv/proto/pkg/eraftpb"
 
-	metapb "github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
+	metapb "github.com/Alorun/stonekv/proto/pkg/metapb"
 
 	context "golang.org/x/net/context"
 

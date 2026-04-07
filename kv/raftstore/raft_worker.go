@@ -3,7 +3,7 @@ package raftstore
 import (
 	"sync"
 
-	"github.com/pingcap-incubator/tinykv/kv/raftstore/message"
+	"github.com/Alorun/stonekv/kv/raftstore/message"
 )
 
 // raftWorker is responsible for run raft commands and apply raft logs.

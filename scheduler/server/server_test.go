@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/pingcap-incubator/tinykv/scheduler/pkg/testutil"
-	"github.com/pingcap-incubator/tinykv/scheduler/server/config"
+	"github.com/Alorun/stonekv/scheduler/pkg/testutil"
+	"github.com/Alorun/stonekv/scheduler/server/config"
 	. "github.com/pingcap/check"
 )
 

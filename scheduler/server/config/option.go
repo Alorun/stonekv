@@ -19,9 +19,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/pingcap-incubator/tinykv/scheduler/server/core"
-	"github.com/pingcap-incubator/tinykv/scheduler/server/kv"
-	"github.com/pingcap-incubator/tinykv/scheduler/server/schedule"
+	"github.com/Alorun/stonekv/scheduler/server/core"
+	"github.com/Alorun/stonekv/scheduler/server/kv"
+	"github.com/Alorun/stonekv/scheduler/server/schedule"
 )
 
 // ScheduleOption is a wrapper to access the configuration safely.

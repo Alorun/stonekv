@@ -23,9 +23,9 @@ import (
 	"time"
 
 	"github.com/juju/errors"
-	"github.com/pingcap-incubator/tinykv/log"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/schedulerpb"
+	"github.com/Alorun/stonekv/log"
+	"github.com/Alorun/stonekv/proto/pkg/metapb"
+	"github.com/Alorun/stonekv/proto/pkg/schedulerpb"
 	"google.golang.org/grpc"
 )
 

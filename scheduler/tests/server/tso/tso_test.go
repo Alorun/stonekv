@@ -19,9 +19,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pingcap-incubator/tinykv/proto/pkg/schedulerpb"
-	"github.com/pingcap-incubator/tinykv/scheduler/pkg/testutil"
-	"github.com/pingcap-incubator/tinykv/scheduler/tests"
+	"github.com/Alorun/stonekv/proto/pkg/schedulerpb"
+	"github.com/Alorun/stonekv/scheduler/pkg/testutil"
+	"github.com/Alorun/stonekv/scheduler/tests"
 	. "github.com/pingcap/check"
 )
 

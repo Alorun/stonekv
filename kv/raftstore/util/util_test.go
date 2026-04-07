@@ -3,9 +3,9 @@ package util
 import (
 	"testing"
 
-	"github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/raft_cmdpb"
+	"github.com/Alorun/stonekv/proto/pkg/eraftpb"
+	"github.com/Alorun/stonekv/proto/pkg/metapb"
+	"github.com/Alorun/stonekv/proto/pkg/raft_cmdpb"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/pingcap-incubator/tinykv/proto/pkg/kvrpcpb"
+	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
 )
 
 // Write is a representation of a committed write to backing storage.

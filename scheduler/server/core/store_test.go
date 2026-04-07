@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pingcap-incubator/tinykv/proto/pkg/metapb"
+	"github.com/Alorun/stonekv/proto/pkg/metapb"
 	. "github.com/pingcap/check"
 )
 

@@ -16,9 +16,9 @@ package selector
 import (
 	"testing"
 
-	"github.com/pingcap-incubator/tinykv/scheduler/pkg/mock/mockcluster"
-	"github.com/pingcap-incubator/tinykv/scheduler/pkg/mock/mockoption"
-	"github.com/pingcap-incubator/tinykv/scheduler/server/core"
+	"github.com/Alorun/stonekv/scheduler/pkg/mock/mockcluster"
+	"github.com/Alorun/stonekv/scheduler/pkg/mock/mockoption"
+	"github.com/Alorun/stonekv/scheduler/server/core"
 	. "github.com/pingcap/check"
 )
 

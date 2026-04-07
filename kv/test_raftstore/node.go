@@ -9,16 +9,16 @@ import (
 	"time"
 
 	"github.com/Connor1996/badger"
-	"github.com/pingcap-incubator/tinykv/kv/config"
-	"github.com/pingcap-incubator/tinykv/kv/raftstore"
-	"github.com/pingcap-incubator/tinykv/kv/raftstore/message"
-	"github.com/pingcap-incubator/tinykv/kv/raftstore/scheduler_client"
-	"github.com/pingcap-incubator/tinykv/kv/raftstore/snap"
-	"github.com/pingcap-incubator/tinykv/kv/util/engine_util"
-	"github.com/pingcap-incubator/tinykv/log"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/eraftpb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/raft_cmdpb"
-	"github.com/pingcap-incubator/tinykv/proto/pkg/raft_serverpb"
+	"github.com/Alorun/stonekv/kv/config"
+	"github.com/Alorun/stonekv/kv/raftstore"
+	"github.com/Alorun/stonekv/kv/raftstore/message"
+	"github.com/Alorun/stonekv/kv/raftstore/scheduler_client"
+	"github.com/Alorun/stonekv/kv/raftstore/snap"
+	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/log"
+	"github.com/Alorun/stonekv/proto/pkg/eraftpb"
+	"github.com/Alorun/stonekv/proto/pkg/raft_cmdpb"
+	"github.com/Alorun/stonekv/proto/pkg/raft_serverpb"
 )
 
 type MockTransport struct {

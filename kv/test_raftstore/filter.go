@@ -3,7 +3,7 @@ package test_raftstore
 import (
 	"math/rand"
 
-	rspb "github.com/pingcap-incubator/tinykv/proto/pkg/raft_serverpb"
+	rspb "github.com/Alorun/stonekv/proto/pkg/raft_serverpb"
 )
 
 type Filter interface {
