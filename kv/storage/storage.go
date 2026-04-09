@@ -5,8 +5,8 @@ import (
 	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
 )
 
-// Storage represents the internal-facing server part of TinyKV, it handles sending and receiving from other
-// TinyKV nodes. As part of that responsibility, it also reads and writes data to disk (or semi-permanent memory).
+// Storage represents the internal-facing server part of KV, it handles sending and receiving from other KV nodes.
+// As part of that responsibility, it also reads and writes data to disk (or semi-permanent memory).
 type Storage interface {
 	Start() error
 	Stop() error
