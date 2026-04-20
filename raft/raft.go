@@ -1,17 +1,3 @@
-// Copyright 2015 The etcd Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package raft
 
 import (
@@ -164,7 +150,42 @@ func newRaft(c *Config) *Raft {
 	if err := c.validate(); err != nil {
 		panic(err.Error())
 	}
-	// Your Code Here (2A).
+	
+	raftLog := newLog(c.Storage)
+
+	hardState, confState, err := c.Storage.InitialState()
+	if err != nil {
+		panic(err)
+	}
+
+	peers := c.peers
+	if len(peers) == 0 {
+		peers = confState.Nodes
+	}
+
+	prs := make(map[uint64]*Progress)
+	for _, id := range peers {
+		prs[id] = &Progress{Next: 1}
+	}
+
+	r := &Raft{
+		id :				c.ID,
+		Term: 				hardState.Term,
+		Vote: 				hardState.Vote,
+		RaftLog:	 		raftLog,
+		Prs: 				prs,
+		State: 				StateFollower,
+		votes:		  		make(map[uint64]bool),
+		msgs:       	    nil,
+		Lead: 				None,
+		heartbeatTimeout: 	c.HeartbeatTick,
+		electionTimeout: 	c.ElectionTick,
+	}
+
+	if c.Applied > 0 {
+		raftLog.applied
+	}
+
 	return nil
 }
 
