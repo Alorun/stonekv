@@ -1,14 +1,19 @@
 # StoneKV
 
-这是一个 Go 实现的 TiKV/TinyKV 风格分布式 KV 项目，模块名是
-github.com/Alorun/stonekv。核心由两个服务组成：kv/main.go 启动 KV gRPC server，scheduler/main.go 启动调度器。
+This is a Go implementation of a TiKV/TinyKV style distributed key-value (KV) project, module name: github.com/Alorun/stonekv. The core consists of two services: kv/main.go starts the KV gRPC server, and scheduler/main.go starts the scheduler.
 
-### 主要结构：
+### Main Structure:
 
-- raft/：自研 Raft 核心，包括选举、日志复制、RawNode、内存存储和测试。
-- kv/server/：对外 gRPC API。Raw KV 接口已实现，事务接口还有明显占位。
-- kv/storage/：抽象存储层，包含单机 Badger 存储和 Raft-backed 存储。
-- kv/raftstore/：Region、Peer、Raft 消息处理、快照、分裂、调度心跳等 TiKV 类逻辑。
-- kv/transaction/：MVCC、锁、latch、事务命令逻辑，但目前多处仍是 Your Code Here。
-- scheduler/：类似 PD 的调度服务，管理 store/region、TSO、operator、balance scheduler。
-- proto/：gRPC/protobuf 定义和生成代码。
+- raft/: Self-developed Raft core, including election, log replication, RawNode, in-memory storage, and testing.
+
+- kv/server/: External gRPC API. The Raw KV interface is implemented, but the transaction interface is still in place.
+
+- kv/storage/: Abstract storage layer, including single-machine Badger storage and Raft-backed storage.
+
+- kv/raftstore/: TiKV-like logic such as Region, Peer, Raft message processing, snapshots, splitting, and scheduling heartbeats.
+
+- kv/transaction/: MVCC, locks, latches, and transaction command logic, but currently many parts are still "Your Code Here".
+
+- scheduler/: A scheduling service similar to PD, managing store/region, TSO, operator, and balance scheduler.
+
+- proto/: gRPC/protobuf definition and generation code.
