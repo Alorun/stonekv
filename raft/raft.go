@@ -1,8 +1,8 @@
 package raft
 
 import (
-	"crypto/rand"
 	"errors"
+	"math/rand"
 
 	pb "github.com/Alorun/stonekv/proto/pkg/eraftpb"
 )

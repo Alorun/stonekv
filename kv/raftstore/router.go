@@ -20,8 +20,8 @@ type peerState struct {
 // router routes a message to a peer.
 type router struct {
 	peers       sync.Map // regionID -> peerState
-	peerSender  chan message.Msg
-	storeSender chan<- message.Msg
+	peerSender  chan message.Msg  // send to raftWorker
+	storeSender chan<- message.Msg  // send to storeWorker
 }
 
 func newRouter(storeSender chan<- message.Msg) *router {
@@ -91,7 +91,6 @@ func (r *RaftstoreRouter) SendRaftMessage(msg *raft_serverpb.RaftMessage) error 
 		r.router.sendStore(message.NewPeerMsg(message.MsgTypeStoreRaftMessage, regionID, msg))
 	}
 	return nil
-
 }
 
 func (r *RaftstoreRouter) SendRaftCommand(req *raft_cmdpb.RaftCmdRequest, cb *message.Callback) error {

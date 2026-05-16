@@ -48,6 +48,7 @@ message RegionLocalState {
 
 // Normal indicates that this Peer is normal;
 // Tombstone shows that this Peer has been removed from Region and cannot join in Raft Group.
+// In pactice, 'Applying' also needs to be added to prevent other processes from interfering with it.
 enum PeerState {
     Normal = 0;
     Tombstone = 2;
