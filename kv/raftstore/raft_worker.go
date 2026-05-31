@@ -35,6 +35,7 @@ func (rw *raftWorker) run(closeCh <-chan struct{}, wg *sync.WaitGroup) {
 	var msgs []message.Msg
 	for {
 		msgs = msgs[:0]
+		// Waiting for external input.
 		select {
 		case <-closeCh:
 			return

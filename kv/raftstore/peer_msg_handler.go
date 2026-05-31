@@ -4,16 +4,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Connor1996/badger/y"
 	"github.com/Alorun/stonekv/kv/raftstore/message"
+	"github.com/Alorun/stonekv/kv/raftstore/meta"
 	"github.com/Alorun/stonekv/kv/raftstore/runner"
 	"github.com/Alorun/stonekv/kv/raftstore/snap"
 	"github.com/Alorun/stonekv/kv/raftstore/util"
+	"github.com/Alorun/stonekv/kv/util/engine_util"
 	"github.com/Alorun/stonekv/log"
+	"github.com/Alorun/stonekv/proto/pkg/eraftpb"
 	"github.com/Alorun/stonekv/proto/pkg/metapb"
 	"github.com/Alorun/stonekv/proto/pkg/raft_cmdpb"
 	rspb "github.com/Alorun/stonekv/proto/pkg/raft_serverpb"
 	"github.com/Alorun/stonekv/scheduler/pkg/btree"
+	"github.com/Connor1996/badger"
+	"github.com/Connor1996/badger/y"
 	"github.com/pingcap/errors"
 )
 
@@ -42,7 +46,172 @@ func (d *peerMsgHandler) HandleRaftReady() {
 	if d.stopped {
 		return
 	}
-	// Your Code Here (2B).
+	
+	if !d.RaftGroup.HasReady() {
+		return
+	}
+	rd := d.RaftGroup.Ready()
+
+	// Persisitence HardState/Entries/Snapshot
+	ApplySnapResult, err := d.peerStorage.SaveReadyState(&rd)
+	if err != nil {
+		panic(err)
+	}
+
+	// The snapshot applied changed the region boundary -> Updated storeMeta
+	if ApplySnapResult != nil && !util.RegionEqual(ApplySnapResult.PrevRegion, ApplySnapResult.Region) {
+		d.peerStorage.SetRegion(ApplySnapResult.Region)
+		meta := d.ctx.storeMeta
+		meta.Lock()
+		meta.regions[ApplySnapResult.Region.Id] = ApplySnapResult.Region
+		meta.regionRanges.Delete(&regionItem{region: ApplySnapResult.PrevRegion})
+		meta.regionRanges.ReplaceOrInsert(&regionItem{region: ApplySnapResult.Region})
+		meta.Unlock()
+	}
+
+	// Send message (must be after persistence)
+	if len(rd.Messages) > 0 {
+		d.Send(d.ctx.trans, rd.Messages)
+	}
+
+	// Apply committed logs
+	if len(rd.CommittedEntries) > 0 {
+		kvWB := new(engine_util.WriteBatch)
+		for _, ent := range rd.CommittedEntries {
+			kvWB = d.processCommittedEntry(&ent, kvWB)
+			if d.stopped {
+				return
+			}
+		}
+		// Push and write AppliedIndex to disk within the same batch to ensure atomicity
+		d.peerStorage.applyState.AppliedIndex = rd.CommittedEntries[len(rd.CommittedEntries) - 1].Index
+		if err := kvWB.SetMeta(meta.ApplyStateKey(d.regionId), d.peerStorage.applyState); err != nil {
+			panic(err)
+		}
+		if err := kvWB.WriteToDB(d.ctx.engine.Kv); err != nil {
+			panic(err)
+		}
+	}
+
+	// Notify Raft that the current Ready round has been consumed and can proceed to stable/applied
+	d.RaftGroup.Advance(rd)
+}
+
+func (d *peerMsgHandler) processCommittedEntry(ent *eraftpb.Entry, kvWB *engine_util.WriteBatch) *engine_util.WriteBatch {
+	if len(ent.Data) == 0 {
+		return kvWB
+	}
+
+	if ent.EntryType == eraftpb.EntryType_EntryConfChange {
+		return kvWB
+	}
+
+	msg := &raft_cmdpb.RaftCmdRequest{}
+	if err := msg.Unmarshal(ent.Data); err != nil {
+		panic(err)
+	}
+
+	if msg.AdminRequest != nil {
+		return d.processAdminRequest(ent, msg, kvWB)
+	}
+
+	resp := &raft_cmdpb.RaftCmdResponse{Header: &raft_cmdpb.RaftResponseHeader{}}
+	var txn *badger.Txn
+
+	for _, req := range msg.Requests {
+		switch req.CmdType {
+		case raft_cmdpb.CmdType_Put:
+			kvWB.SetCF(req.Put.Cf, req.Put.Key, req.Put.Value)
+			resp.Responses = append(resp.Responses, &raft_cmdpb.Response{
+				CmdType: 	raft_cmdpb.CmdType_Put,
+				Put: 		&raft_cmdpb.PutResponse{},	
+			})
+		case raft_cmdpb.CmdType_Delete:
+			kvWB.DeleteCF(req.Delete.Cf, req.Delete.Key)
+			resp.Responses = append(resp.Responses, &raft_cmdpb.Response{
+				CmdType: 	raft_cmdpb.CmdType_Delete,
+				Delete: 	&raft_cmdpb.DeleteResponse{},
+			})
+		case raft_cmdpb.CmdType_Get:
+			// Flush before reading.
+			// Otherwise the write-after-read operation within the same entry will not see itself.
+			if err := kvWB.WriteToDB(d.ctx.engine.Kv); err != nil {
+				panic(err)
+			}
+			kvWB = new(engine_util.WriteBatch)
+			val, err := engine_util.GetCF(d.ctx.engine.Kv, req.Get.Cf, req.Get.Key)
+			if err != nil && err != badger.ErrKeyNotFound {
+				panic(err)
+			}
+			resp.Responses = append(resp.Responses, &raft_cmdpb.Response{
+				CmdType: 	raft_cmdpb.CmdType_Get,
+				Get: 		&raft_cmdpb.GetResponse{Value: val},
+			})
+		case raft_cmdpb.CmdType_Snap:
+			if err := kvWB.WriteToDB(d.ctx.engine.Kv); err != nil {
+				panic(err)
+			}
+			kvWB = new(engine_util.WriteBatch)
+			txn = d.ctx.engine.Kv.NewTransaction(false)
+			resp.Responses = append(resp.Responses, &raft_cmdpb.Response{
+				CmdType: 	raft_cmdpb.CmdType_Snap,
+				Snap: 		&raft_cmdpb.SnapResponse{Region: d.Region()},
+			})
+		}
+	}
+
+	d.handleProposal(ent, resp, txn)
+	return kvWB
+}
+
+func (d *peerMsgHandler) handleProposal(ent *eraftpb.Entry, resp *raft_cmdpb.RaftCmdResponse, txn *badger.Txn) {
+	for len(d.proposals) > 0 {
+		p := d.proposals[0]
+
+		if p.index < ent.Index {
+			NotifyStaleReq(p.term, p.cb)
+			d.proposals = d.proposals[1:]
+			continue
+		}
+
+		if p.index > ent.Index {
+			return
+		}
+
+		if p.term!= ent.Term {
+			NotifyStaleReq(p.term, p.cb)
+		} else {
+			if txn != nil {
+				p.cb.Txn = txn
+			}
+			p.cb.Done(resp)
+		}
+		d.proposals = d.proposals[1:]
+		return
+	}
+}
+
+func (d *peerMsgHandler) processAdminRequest(ent *eraftpb.Entry, msg *raft_cmdpb.RaftCmdRequest, kvWB *engine_util.WriteBatch) *engine_util.WriteBatch {
+	adminReq := msg.AdminRequest
+	switch adminReq.CmdType {
+	case raft_cmdpb.AdminCmdType_CompactLog:
+		compact := adminReq.CompactLog
+		if compact.CompactIndex >= d.peerStorage.applyState.TruncatedState.Index {
+			d.peerStorage.applyState.TruncatedState.Index = compact.CompactIndex
+			d.peerStorage.applyState.TruncatedState.Term = compact.CompactTerm
+
+			d.ScheduleCompactLog(compact.CompactIndex)
+		}
+		resp := &raft_cmdpb.RaftCmdResponse{
+			Header:			&raft_cmdpb.RaftResponseHeader{},
+			AdminResponse:	&raft_cmdpb.AdminResponse{
+				CmdType: 	raft_cmdpb.AdminCmdType_CompactLog,
+				CompactLog: &raft_cmdpb.CompactLogResponse{},
+			},
+		}
+		d.handleProposal(ent, resp, nil)
+	}
+	return kvWB
 }
 
 func (d *peerMsgHandler) HandleMsg(msg message.Msg) {
@@ -97,7 +266,7 @@ func (d *peerMsgHandler) preProposeRaftCommand(req *raft_cmdpb.RaftCmdRequest) e
 		// Attach the region which might be split from the current region. But it doesn't
 		// matter if the region is not split from the current region. If the region meta
 		// received by the TiKV driver is newer than the meta cached in the driver, the meta is
-		// updated.
+		// updated.      
 		siblingRegion := d.findSiblingRegion()
 		if siblingRegion != nil {
 			errEpochNotMatching.Regions = append(errEpochNotMatching.Regions, siblingRegion)
@@ -113,9 +282,28 @@ func (d *peerMsgHandler) proposeRaftCommand(msg *raft_cmdpb.RaftCmdRequest, cb *
 		cb.Done(ErrResp(err))
 		return
 	}
-	// Your Code Here (2B).
-}
 
+	// Serialize the entire RaftCmdRequest into a byte stream, which will be used as the Data for the Raft entry.
+	data, err := msg.Marshal()
+	if err != nil {
+		cb.Done(ErrResp(err))
+		return
+	}
+
+	// Submit the proposal to the Raft consensus layer.
+	if err := d.RaftGroup.Propose(data); err != nil {
+		cb.Done(ErrResp(err))
+		return
+	}
+
+	// Register the proposal and link cb to the entry it belongs to.
+	d.proposals = append(d.proposals, &proposal{
+		index: 	d.RaftGroup.Raft.RaftLog.LastIndex(),
+		term:  	d.Term(),	
+		cb:  	cb,
+	})
+}
+       
 func (d *peerMsgHandler) onTick() {
 	if d.stopped {
 		return
@@ -125,7 +313,7 @@ func (d *peerMsgHandler) onTick() {
 		d.onRaftBaseTick()
 	}
 	if d.ticker.isOnTick(PeerTickRaftLogGC) {
-		d.onRaftGCLogTick()
+		d.onRaftGCLogTick()     
 	}
 	if d.ticker.isOnTick(PeerTickSchedulerHeartbeat) {
 		d.onSchedulerHeartbeatTick()
@@ -223,9 +411,9 @@ func (d *peerMsgHandler) validateRaftMessage(msg *rspb.RaftMessage) bool {
 	return true
 }
 
-/// Checks if the message is sent to the correct peer.
-///
-/// Returns true means that the message can be dropped silently.
+// / Checks if the message is sent to the correct peer.
+// /
+// / Returns true means that the message can be dropped silently.
 func (d *peerMsgHandler) checkMessage(msg *rspb.RaftMessage) bool {
 	fromEpoch := msg.GetRegionEpoch()
 	isVoteMsg := util.IsVoteMessage(msg.Message)

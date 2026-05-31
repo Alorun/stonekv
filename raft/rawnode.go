@@ -213,7 +213,7 @@ func (rn *RawNode) Advance(rd Ready) {
 	if rd.SoftState != nil {
 		rn.prevSoftState = rd.SoftState
 	}
-	if IsEmptyHardState(rd.HardState) {
+	if !IsEmptyHardState(rd.HardState) {
 		rn.prevHardState = rd.HardState
 	}
 

@@ -69,7 +69,7 @@ func newLog(storage Storage) *RaftLog {
 	l.committed = min(hardState.Commit, lastIndex)
 	l.applied = firstIndex - 1
 
-	return nil
+	return l
 }
 
 // offset return the index of the entries[0] in the global log.

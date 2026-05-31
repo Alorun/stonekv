@@ -82,32 +82,25 @@ type peer struct {
 	Tag string
 
 	// Record the callback of the proposals
-	// (Used in 2B)
 	proposals []*proposal
 
 	// Index of last scheduled compacted raft log.
-	// (Used in 2C)
 	LastCompactedIdx uint64
 
 	// Cache the peers information from other stores
 	// when sending raft messages to other peers, it's used to get the store id of target peer
-	// (Used in 3B conf change)
 	peerCache map[uint64]*metapb.Peer
 	// Record the instants of peers being added into the configuration.
 	// Remove them after they are not pending any more.
-	// (Used in 3B conf change)
 	PeersStartPendingTime map[uint64]time.Time
 	// Mark the peer as stopped, set when peer is destroyed
-	// (Used in 3B conf change)
 	stopped bool
 
 	// An inaccurate difference in region size since last reset.
 	// split checker is triggered when it exceeds the threshold, it makes split checker not scan the data very often
-	// (Used in 3B split)
 	SizeDiffHint uint64
 	// Approximate size of the region.
 	// It's updated everytime the split checker scan the data
-	// (Used in 3B split)
 	ApproximateSize *uint64
 }
 
