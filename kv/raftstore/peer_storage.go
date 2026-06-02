@@ -373,6 +373,7 @@ func (ps *PeerStorage) ApplySnapshot(snapshot *eraftpb.Snapshot, kvWB *engine_ut
 	ch := make(chan bool, 1)
 	ps.snapState = snap.SnapState{
 		StateType: snap.SnapState_Applying,
+		Notifier:  ch,
 	}
 	ps.regionSched <- &runner.RegionTaskApply{
 		RegionId: snapData.Region.Id,
@@ -442,5 +443,17 @@ func (ps *PeerStorage) clearRange(regionID uint64, start, end []byte) {
 		RegionId: regionID,
 		StartKey: start,
 		EndKey:   end,
+	}
+}
+
+func (ps *PeerStorage) CheckApplyingSnap() bool {
+	if ps.snapState.StateType != snap.SnapState_Applying {
+		return false
+	}
+	select {
+	case <-ps.snapState.Notifier:
+		return false
+	default:
+		return true
 	}
 }

@@ -34,6 +34,7 @@ const (
 type SnapState struct {
 	StateType SnapStateType
 	Receiver  chan *eraftpb.Snapshot
+	Notifier  chan bool
 }
 
 const (

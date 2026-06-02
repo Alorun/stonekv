@@ -183,9 +183,15 @@ func (rn *RawNode) HasReady() bool {
 // Ready returns the current point-in-time state of this RawNode.
 func (rn *RawNode) Ready() Ready {
 	r := rn.Raft
+
+	ents := r.RaftLog.unstableEntries()
+	if ents == nil {
+		ents = []pb.Entry{}
+	}
+
 	rd := Ready {
 		Messages: 			r.msgs,
-		Entries: 			r.RaftLog.unstableEntries(),
+		Entries: 			ents,
 		CommittedEntries: 	r.RaftLog.nextEnts(),
 	}
 

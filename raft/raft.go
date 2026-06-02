@@ -375,30 +375,30 @@ func (r *Raft) stepFollower(m pb.Message) error {
 	switch m.MsgType {
 	case pb.MessageType_MsgHup:
 		r.startElection()
-
 	case pb.MessageType_MsgAppend:
 		r.electionElapsed = 0
 		r.Lead = m.From
 		r.handleAppendEntries(m)
-
 	case pb.MessageType_MsgHeartbeat:
 		r.electionElapsed = 0
 		r.Lead = m.From
 		r.handleHeartbeat(m)
-	
 	case pb.MessageType_MsgSnapshot:
 		r.electionElapsed = 0
 		r.Lead = m.From
 		r.handleSnapshot(m)
-	
 	case pb.MessageType_MsgRequestVote:
 		r.handleRequestVote(m)
-
 	case pb.MessageType_MsgTransferLeader:
 		if r.Lead != None {
 			m.To = r.Lead
 			r.msgs = append(r.msgs, m)
 		}
+	case pb.MessageType_MsgTimeoutNow:
+		if _, ok := r.Prs[r.id]; !ok {
+			return nil
+		}
+		r.startElection()
 	}
 	return nil
 }
@@ -407,24 +407,24 @@ func (r *Raft) stepCandidate(m pb.Message) error {
 	switch m.MsgType {
 	case pb.MessageType_MsgHup:
 		r.startElection()
-
 	case pb.MessageType_MsgRequestVoteResponse:
 		r.handleVoteResponse(m)
-	
 	case pb.MessageType_MsgAppend:
 		r.becomeFollower(m.Term, m.From)
 		r.handleAppendEntries(m)
-
 	case pb.MessageType_MsgHeartbeat:
 		r.becomeFollower(m.Term, m.From)
 		r.handleHeartbeat(m)
-
 	case pb.MessageType_MsgSnapshot:
 		r.becomeFollower(m.Term, m.From)
 		r.handleSnapshot(m)
-
 	case pb.MessageType_MsgRequestVote:
 		r.handleRequestVote(m)
+	case pb.MessageType_MsgTimeoutNow:
+		if _, ok := r.Prs[r.id]; !ok {
+			return nil
+		}
+		r.startElection()
 	}
 	return nil
 }
@@ -433,20 +433,15 @@ func (r *Raft) stepLeader(m pb.Message) error {
 	switch m.MsgType {
 	case pb.MessageType_MsgBeat:
 		r.broadcastHeartbeat()
-
 	case pb.MessageType_MsgPropose:
 		return r.handlePropose(m)
-
 	case pb.MessageType_MsgAppendResponse:
 		r.handleAppendResponse(m)
-
 	case pb.MessageType_MsgHeartbeatResponse:
 		r.handleHeartbeatResponse(m)
-
 	case pb.MessageType_MsgRequestVote:
 		// Same Term, high Term already is dealed with
 		r.handleRequestVote(m)
-	
 	case pb.MessageType_MsgTransferLeader:
 		r.handleTransferLeader(m)
 	}
@@ -755,6 +750,14 @@ func (r *Raft) handlePropose(m pb.Message) error {
 	lastIndex := r.RaftLog.LastIndex()
 	ents := make([]pb.Entry, len(m.Entries))
 	for i, e := range m.Entries {
+		// Prevent two unapplied confchanges from occurring simultaneously
+		if e.EntryType == pb.EntryType_EntryConfChange {
+			if r.PendingConfIndex > r.RaftLog.applied {
+				continue
+			}
+			r.PendingConfIndex = lastIndex + uint64(i) + 1
+		}
+
 		ents[i] = pb.Entry{
 			EntryType: 	e.EntryType,
 			Term: 		r.Term,

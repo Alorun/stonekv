@@ -47,6 +47,10 @@ func (d *peerMsgHandler) HandleRaftReady() {
 		return
 	}
 	
+	if d.peerStorage.CheckApplyingSnap() {
+		return
+	}
+
 	if !d.RaftGroup.HasReady() {
 		return
 	}
