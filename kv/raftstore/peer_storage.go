@@ -452,6 +452,7 @@ func (ps *PeerStorage) CheckApplyingSnap() bool {
 	}
 	select {
 	case <-ps.snapState.Notifier:
+		ps.snapState.StateType = snap.SnapState_Relax
 		return false
 	default:
 		return true

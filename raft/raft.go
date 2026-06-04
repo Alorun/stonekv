@@ -626,6 +626,7 @@ func (r *Raft) handleAppendEntries(m pb.Message) {
 			Index: 		r.RaftLog.LastIndex(),
 			Reject: 	true,
 		})
+		return
 	}
 
 	// Append/overwrite log entries(handle confliciting truncation)
