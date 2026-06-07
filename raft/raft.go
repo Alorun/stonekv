@@ -529,6 +529,11 @@ func (r *Raft) broadcastHeartbeat() {
 //================================== Election =======================================
 
 func (r *Raft) startElection() {
+	// Empty peer is not allowed to initiate elections
+	if _, ok := r.Prs[r.id]; !ok {
+		return
+	}
+
 	r. becomeCandidate()
 
 	// Single node cluster, directly elected

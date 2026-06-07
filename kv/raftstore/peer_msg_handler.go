@@ -228,7 +228,7 @@ func (d *peerMsgHandler) HandleRaftReady() {
 		meta.Unlock()
 	}
 
-	// Send message that have not yet been committed for follower (must be after persistence) 
+	// Send all outgoing messages from within the Raft machine (must be after persistence) 
 	if len(rd.Messages) > 0 {
 		d.Send(d.ctx.trans, rd.Messages)
 	}

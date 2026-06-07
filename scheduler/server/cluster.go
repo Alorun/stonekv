@@ -278,7 +278,45 @@ func (c *RaftCluster) handleStoreHeartbeat(stats *schedulerpb.StoreStats) error 
 
 // processRegionHeartbeat updates the region information.
 func (c *RaftCluster) processRegionHeartbeat(region *core.RegionInfo) error {
-	// Your Code Here (3C).
+	c.Lock()
+	defer c.Unlock()
+
+	epoch := region.GetRegionEpoch()
+
+	affected := make(map[uint64]struct{})
+	for id := range region.GetStoreIds() {
+		affected[id] = struct{}{}
+	}
+
+	if origin := c.core.GetRegion(region.GetID()); origin != nil {
+		// If a matching region id exist in the current core, compare it directly.
+		o := origin.GetRegionEpoch()
+		if epoch.GetVersion() < o.GetVersion() || epoch.GetConfVer() < o.GetConfVer() {
+			return ErrRegionIsStale(region.GetMeta(), origin.GetMeta())
+		}
+		for id := range origin.GetStoreIds() {
+			affected[id] = struct{}{}
+		}
+	} else {
+		// If not matching region id exists. 
+		// check each overlapping key's registrar to ensure to overlapping region remains.
+		for _, ov := range c.core.GetOverlaps(region) {
+			o := ov.GetRegionEpoch()
+			if epoch.GetVersion() < o.GetVersion() || epoch.GetConfVer() < o.GetConfVer() {
+				return ErrRegionIsStale(region.GetMeta(), ov.GetMeta())
+			}
+
+			for id := range ov.GetStoreIds() {
+				affected[id] = struct{}{}
+			}
+		}
+	}
+
+	c.core.PutRegion(region)
+
+	for id := range affected {
+		c.updateStoreStatusLocked(id)
+	}
 
 	return nil
 }
