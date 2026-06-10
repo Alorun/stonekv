@@ -134,6 +134,7 @@ func (s *balanceRegionScheduler) Schedule(cluster opt.Cluster) *operator.Operato
 	regionStoreIds := region.GetStoreIds()
 	var targetStore *core.StoreInfo
 	for i := len(suitableStores) - 1; i >= 0; i-- {
+		// Exclude stores that already contain the same region.
 		if _, ok := regionStoreIds[suitableStores[i].GetID()]; !ok {
 			targetStore = suitableStores[i]
 			break

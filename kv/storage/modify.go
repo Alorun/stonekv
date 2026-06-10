@@ -1,6 +1,6 @@
 package storage
 
-// Modify is a single modification to TinyKV's underlying storage.
+// Modify is a single modification to StoneKV's underlying storage.
 type Modify struct {
 	Data interface{}
 }

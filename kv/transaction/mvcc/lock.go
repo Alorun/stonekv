@@ -13,10 +13,10 @@ import (
 const TsMax uint64 = ^uint64(0)
 
 type Lock struct {
-	Primary []byte
-	Ts      uint64
-	Ttl     uint64
-	Kind    WriteKind
+	Primary []byte		// Key
+	Ts      uint64  	// startTs
+	Ttl     uint64		// TTL
+	Kind    WriteKind	// Get,Put,Delete
 }
 
 type KlPair struct {

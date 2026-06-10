@@ -15,11 +15,10 @@ import (
 
 var _ stonekvpb.StoneKvServer = new(Server)
 
-// Server is a TinyKV server, it 'faces outwards', sending and receiving messages from clients such as TinySQL.
+// Server is a StoneKV server, it 'faces outwards', sending and receiving messages from clients such as StoneSQL.
 type Server struct {
 	storage storage.Storage
 
-	// (Used in 4B)
 	Latches *latches.Latches
 
 	// coprocessor API handler, out of course scope
