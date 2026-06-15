@@ -197,6 +197,7 @@ func (txn *MvccTxn) MostRecentWrite(key []byte) (*Write, uint64, error) {
 		return nil, 0, err
 	}
 
+	// Return commit_ts
 	return write, decodeTimestamp(item.Key()), nil
 }
 
