@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"go/scanner"
 
 	"github.com/Alorun/stonekv/kv/coprocessor"
 	"github.com/Alorun/stonekv/kv/storage"
@@ -288,24 +287,145 @@ func (server *Server) KvScan(_ context.Context, req *kvrpcpb.ScanRequest) (*kvrp
 	scanner := mvcc.NewScanner(req.StartKey, txn)
 	defer scanner.Close()
 
-	
+	var pairs []*kvrpcpb.KvPair
+	for uint32(len(pairs)) < req.Limit {
+		key, value, err := scanner.Next()
+		if err != nil {
+			if regionErr, ok := err.(*raft_storage.RegionError); ok {
+				resp.RegionError = regionErr.RequestErr
+				return resp, nil
+			}
+			return nil, err
+		}
+		// All keys have been iterated over.
+		if key == nil {
+			break
+		}
 
+		lock, err := txn.GetLock(key)
+		if err != nil {
+			if regionErr, ok := err.(*raft_storage.RegionError); ok {
+				resp.RegionError = regionErr.RequestErr
+				return resp, nil
+			}
+			return nil, err
+		}
 
-	return nil, nil
+		// The lock time is earlier than the current transaction time.
+		// Record the current error and continue scanning other keys.
+		if lock != nil && lock.Ts <= req.Version {
+			pairs = append(pairs, &kvrpcpb.KvPair{
+				Error: 	&kvrpcpb.KeyError{
+					Locked: lock.Info(key),
+				},
+				Key: 	key,
+			})
+			continue
+		}
+
+		if value == nil {
+			continue
+		}
+		
+		pairs = append(pairs, &kvrpcpb.KvPair{
+			Key: 	key,
+			Value: 	value,
+		})
+	}
+
+	resp.Pairs = pairs
+	return resp, nil
 }
 
 func (server *Server) KvCheckTxnStatus(_ context.Context, req *kvrpcpb.CheckTxnStatusRequest) (*kvrpcpb.CheckTxnStatusResponse, error) {
-	// Your Code Here (4C).
-	return nil, nil
+	resp := &kvrpcpb.CheckTxnStatusResponse{}
+
+	keys := [][]byte{req.PrimaryKey}
+	server.Latches.WaitForLatches(keys)
+	defer server.Latches.ReleaseLatches(keys)
+
+	reader, err := server.storage.Reader(req.Context)
+	if err != nil {
+		if regionErr, ok := err.(*raft_storage.RegionError); ok {
+			resp.RegionError = regionErr.RequestErr
+			return resp, nil
+		}
+		return nil, err
+	}
+	defer reader.Close()
+
+	txn := mvcc.NewMvccTxn(reader, req.LockTs)
+
+	// Get primary key status.
+	write, commitTs, err := txn.CurrentWrite(req.PrimaryKey)
+	if err != nil {
+		if regionErr, ok := err.(*raft_storage.RegionError); ok {
+			resp.RegionError = regionErr.RequestErr
+			return resp, nil
+		}
+		return nil, err
+	}
+	if write != nil {
+		// The final state is already in place and no changes are needed.
+		if write.Kind != mvcc.WriteKindRollback {
+			// It has been submitted.
+			resp.CommitVersion = commitTs
+		}
+		resp.Action = kvrpcpb.Action_NoAction
+		return resp, nil
+	}
+
+	lock, err := txn.GetLock(req.PrimaryKey)
+	if err != nil {
+		if regionErr, ok := err.(*raft_storage.RegionError); ok {
+			resp.RegionError = regionErr.RequestErr
+			return resp, nil
+		}
+		return nil, err
+	}
+
+	if lock == nil {
+		// Since there was neither a write nor a lock, it is treated as if the transaction did not occur.
+		// Leaving a rollback marker.
+		txn.PutWrite(req.PrimaryKey, req.LockTs, &mvcc.Write{
+			StartTS: 	req.LockTs,
+			Kind: 		mvcc.WriteKindRollback,
+		})
+		resp.Action = kvrpcpb.Action_LockNotExistRollback
+	} else if mvcc.PhysicalTime(req.CurrentTs) >= mvcc.PhysicalTime(lock.Ts) + lock.Ttl {
+		// The lock is active, but the transaction time out.
+		// Leaving a rollback marker.
+		txn.DeleteValue(req.PrimaryKey)
+		txn.DeleteLock(req.PrimaryKey)
+		txn.PutWrite(req.PrimaryKey, req.LockTs, &mvcc.Write{
+			StartTS:	req.LockTs,
+			Kind: 		mvcc.WriteKindRollback,
+		})
+		resp.Action = kvrpcpb.Action_TTLExpireRollback
+	} else {
+		// The lock is active and the transaction has not time out.
+		// No changes made.
+		resp.LockTtl = lock.Ttl
+		resp.Action = kvrpcpb.Action_NoAction
+	}
+
+	err = server.storage.Write(req.Context, txn.Writes())
+	if err != nil {
+		if regionErr, ok := err.(*raft_storage.RegionError); ok {
+			resp.RegionError = regionErr.RequestErr
+			return resp, nil
+		}
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (server *Server) KvBatchRollback(_ context.Context, req *kvrpcpb.BatchRollbackRequest) (*kvrpcpb.BatchRollbackResponse, error) {
-	// Your Code Here (4C).
 	return nil, nil
 }
 
 func (server *Server) KvResolveLock(_ context.Context, req *kvrpcpb.ResolveLockRequest) (*kvrpcpb.ResolveLockResponse, error) {
-	// Your Code Here (4C).
 	return nil, nil
 }
 
