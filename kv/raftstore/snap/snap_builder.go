@@ -1,8 +1,6 @@
 package snap
 
 import (
-	"github.com/Connor1996/badger"
-	"github.com/Connor1996/badger/y"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
 	"github.com/Alorun/stonekv/proto/pkg/metapb"
 )
@@ -10,13 +8,13 @@ import (
 // snapBuilder builds snapshot files.
 type snapBuilder struct {
 	region  *metapb.Region
-	txn     *badger.Txn
+	txn     *engine_util.Txn
 	cfFiles []*CFFile
 	kvCount int
 	size    int
 }
 
-func newSnapBuilder(cfFiles []*CFFile, dbSnap *badger.Txn, region *metapb.Region) *snapBuilder {
+func newSnapBuilder(cfFiles []*CFFile, dbSnap *engine_util.Txn, region *metapb.Region) *snapBuilder {
 	return &snapBuilder{
 		region:  region,
 		cfFiles: cfFiles,
@@ -44,9 +42,7 @@ func (b *snapBuilder) build() error {
 				return err
 			}
 			cfKey := engine_util.KeyWithCF(cf, key)
-			if err := sstWriter.Add(cfKey, y.ValueStruct{
-				Value: value,
-			}); err != nil {
+			if err := sstWriter.Add(cfKey, value); err != nil {
 				return err
 			}
 			file.KVCount++

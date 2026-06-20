@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Connor1996/badger"
 	"github.com/Connor1996/badger/y"
 	"github.com/golang/protobuf/proto"
 	"github.com/Alorun/stonekv/kv/raftstore/meta"
@@ -92,23 +91,19 @@ func (ps *PeerStorage) Entries(low, high uint64) ([]eraftpb.Entry, error) {
 	}
 	buf := make([]eraftpb.Entry, 0, high-low)
 	nextIndex := low
-	txn := ps.Engines.Raft.NewTransaction(false)
+	txn := engine_util.NewTxn(ps.Engines.Raft)
 	defer txn.Discard()
 	startKey := meta.RaftLogKey(ps.region.Id, low)
 	endKey := meta.RaftLogKey(ps.region.Id, high)
-	iter := txn.NewIterator(badger.DefaultIteratorOptions)
+	iter := txn.NewRawIterator()
 	defer iter.Close()
 	for iter.Seek(startKey); iter.Valid(); iter.Next() {
-		item := iter.Item()
-		if bytes.Compare(item.Key(), endKey) >= 0 {
+		if bytes.Compare(iter.Key(), endKey) >= 0 {
 			break
 		}
-		val, err := item.Value()
-		if err != nil {
-			return nil, err
-		}
+		val := iter.Value()
 		var entry eraftpb.Entry
-		if err = entry.Unmarshal(val); err != nil {
+		if err := entry.Unmarshal(val); err != nil {
 			return nil, err
 		}
 		// May meet gap or has been compacted.
@@ -275,19 +270,21 @@ func ClearMeta(engines *engine_util.Engines, kvWB, raftWB *engine_util.WriteBatc
 	firstIndex := lastIndex + 1
 	beginLogKey := meta.RaftLogKey(regionID, 0)
 	endLogKey := meta.RaftLogKey(regionID, firstIndex)
-	err := engines.Raft.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
+	err := func() error {
+		txn := engine_util.NewTxn(engines.Raft)
+		defer txn.Discard()
+		it := txn.NewRawIterator()
 		defer it.Close()
 		it.Seek(beginLogKey)
-		if it.Valid() && bytes.Compare(it.Item().Key(), endLogKey) < 0 {
-			logIdx, err1 := meta.RaftLogIndex(it.Item().Key())
+		if it.Valid() && bytes.Compare(it.Key(), endLogKey) < 0 {
+			logIdx, err1 := meta.RaftLogIndex(it.Key())
 			if err1 != nil {
 				return err1
 			}
 			firstIndex = logIdx
 		}
 		return nil
-	})
+	}()
 	if err != nil {
 		return err
 	}

@@ -3,24 +3,24 @@ package engine_util
 import (
 	"os"
 
-	"github.com/Connor1996/badger"
+	"github.com/Alorun/stonekv/kv/util/rocketdb"
 	"github.com/Alorun/stonekv/log"
 )
 
 // Engines keeps references to and data for the engines used by unistore.
-// All engines are badger key/value databases.
+// All engines are rocketdb key/value databases.
 // the Path fields are the filesystem path to where the data is stored.
 type Engines struct {
 	// Data, including data which is committed (i.e., committed across other nodes) and un-committed (i.e., only present
 	// locally).
-	Kv     *badger.DB
+	Kv     *rocketdb.DB
 	KvPath string
 	// Metadata used by Raft.
-	Raft     *badger.DB
+	Raft     *rocketdb.DB
 	RaftPath string
 }
 
-func NewEngines(kvEngine, raftEngine *badger.DB, kvPath, raftPath string) *Engines {
+func NewEngines(kvEngine, raftEngine *rocketdb.DB, kvPath, raftPath string) *Engines {
 	return &Engines{
 		Kv:       kvEngine,
 		KvPath:   kvPath,
@@ -38,14 +38,13 @@ func (en *Engines) WriteRaft(wb *WriteBatch) error {
 }
 
 func (en *Engines) Close() error {
-	dbs := []*badger.DB{en.Kv, en.Raft}
-	for _, db := range dbs {
-		if db == nil {
-			continue
-		}
-		if err := db.Close(); err != nil {
-			return err
-		}
+	// rocketdb.DB.Close() does not return an error; the signature is kept as
+	// `error` so callers (raftstore, tests) need no change.
+	if en.Kv != nil {
+		en.Kv.Close()
+	}
+	if en.Raft != nil {
+		en.Raft.Close()
 	}
 	return nil
 }
@@ -63,19 +62,19 @@ func (en *Engines) Destroy() error {
 	return nil
 }
 
-// CreateDB creates a new Badger DB on disk at path.
-func CreateDB(path string, raft bool) *badger.DB {
-	opts := badger.DefaultOptions
-	if raft {
-		// Do not need to write blob for raft engine because it will be deleted soon.
-		opts.ValueThreshold = 0
-	}
-	opts.Dir = path
-	opts.ValueDir = opts.Dir
-	if err := os.MkdirAll(opts.Dir, os.ModePerm); err != nil {
+// CreateDB creates a new RocketDB on disk at path.
+// The `raft` flag is kept for signature compatibility; rocketdb does not need
+// the badger-specific value-threshold tuning the raft engine used.
+func CreateDB(path string, raft bool) *rocketdb.DB {
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		log.Fatal(err)
 	}
-	db, err := badger.Open(opts)
+	opts := rocketdb.NewOptions()
+	// Options is a C resource. Open copies what it needs, so we can release it
+	// right after Open returns to avoid leaking the C struct.
+	defer opts.Close()
+	opts.SetCreateIfMissing(true)
+	db, err := rocketdb.Open(path, opts)
 	if err != nil {
 		log.Fatal(err)
 	}

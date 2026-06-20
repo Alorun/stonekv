@@ -11,11 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Connor1996/badger"
-	"github.com/Connor1996/badger/table"
-
 	"github.com/Alorun/stonekv/kv/util"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/kv/util/rocketdb"
 	"github.com/Alorun/stonekv/log"
 	"github.com/Alorun/stonekv/proto/pkg/eraftpb"
 	"github.com/Alorun/stonekv/proto/pkg/metapb"
@@ -96,11 +94,11 @@ type SnapStatistics struct {
 }
 
 type ApplyOptions struct {
-	DB     *badger.DB
+	DB     *rocketdb.DB
 	Region *metapb.Region
 }
 
-func NewApplyOptions(db *badger.DB, region *metapb.Region) *ApplyOptions {
+func NewApplyOptions(db *rocketdb.DB, region *metapb.Region) *ApplyOptions {
 	return &ApplyOptions{
 		DB:     db,
 		Region: region,
@@ -117,7 +115,7 @@ func NewApplyOptions(db *badger.DB, region *metapb.Region) *ApplyOptions {
 type Snapshot interface {
 	io.Reader
 	io.Writer
-	Build(dbSnap *badger.Txn, region *metapb.Region, snapData *rspb.RaftSnapshotData, stat *SnapStatistics, deleter SnapshotDeleter) error
+	Build(dbSnap *engine_util.Txn, region *metapb.Region, snapData *rspb.RaftSnapshotData, stat *SnapStatistics, deleter SnapshotDeleter) error
 	Path() string
 	Exists() bool
 	Delete()
@@ -205,7 +203,7 @@ type CFFile struct {
 	CF          string
 	Path        string
 	TmpPath     string
-	SstWriter   *table.Builder
+	SstWriter   *cfFileWriter
 	File        *os.File
 	KVCount     int
 	Size        uint64
@@ -382,7 +380,7 @@ func (s *Snap) initForBuilding() error {
 		if err != nil {
 			return err
 		}
-		cfFile.SstWriter = table.NewExternalTableBuilder(file, nil, badger.DefaultOptions.TableBuilderOptions)
+		cfFile.SstWriter = newCFFileWriter(file)
 	}
 	return nil
 }
@@ -521,7 +519,7 @@ func (s *Snap) saveMetaFile() error {
 	return nil
 }
 
-func (s *Snap) Build(dbSnap *badger.Txn, region *metapb.Region, snapData *rspb.RaftSnapshotData, stat *SnapStatistics, deleter SnapshotDeleter) error {
+func (s *Snap) Build(dbSnap *engine_util.Txn, region *metapb.Region, snapData *rspb.RaftSnapshotData, stat *SnapStatistics, deleter SnapshotDeleter) error {
 	if s.Exists() {
 		err := s.validate()
 		if err == nil {
@@ -677,28 +675,35 @@ func (s *Snap) Apply(opts ApplyOptions) error {
 		return err
 	}
 
-	externalFiles := make([]*os.File, 0, len(s.CFFiles))
+	// rocketdb cannot ingest external SST files, so we read each CF file back
+	// and replay its key/value pairs into the engine via a write batch. The
+	// keys already carry their "<cf>_" prefix and the snapshot builder already
+	// limited them to this region's range, so we write them verbatim.
+	wb := rocketdb.NewWriteBatch()
+	defer wb.Close()
+	count := 0
 	for _, cfFile := range s.CFFiles {
 		if cfFile.Size == 0 {
 			// Skip empty cf file
 			continue
 		}
-		file, err := os.Open(cfFile.Path)
+		err := readCFFile(cfFile.Path, func(key, value []byte) error {
+			wb.Put(key, value)
+			count++
+			return nil
+		})
 		if err != nil {
-			log.Errorf("open ingest file %s failed: %s", cfFile.Path, err)
+			log.Errorf("read snapshot cf file %s failed: %s", cfFile.Path, err)
 			return err
 		}
-		externalFiles = append(externalFiles, file)
 	}
-	n, err := opts.DB.IngestExternalFiles(externalFiles)
-	for _, file := range externalFiles {
-		file.Close()
-	}
-	if err != nil {
-		log.Errorf("ingest sst failed (first %d files succeeded): %s", n, err)
+	wo := rocketdb.NewWriteOptions()
+	defer wo.Close()
+	if err := opts.DB.Write(wo, wb); err != nil {
+		log.Errorf("apply snapshot write failed: %s", err)
 		return err
 	}
-	log.Infof("apply snapshot ingested %d tables", n)
+	log.Infof("apply snapshot wrote %d keys", count)
 	return nil
 }
 

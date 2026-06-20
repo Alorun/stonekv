@@ -280,7 +280,7 @@ func (d *peerMsgHandler) processCommittedEntry(ent *eraftpb.Entry, kvWB *engine_
 	}
 
 	resp := &raft_cmdpb.RaftCmdResponse{Header: &raft_cmdpb.RaftResponseHeader{}}
-	var txn *badger.Txn
+	var txn *engine_util.Txn
 
 	for _, req := range msg.Requests {
 		var key []byte
@@ -335,7 +335,7 @@ func (d *peerMsgHandler) processCommittedEntry(ent *eraftpb.Entry, kvWB *engine_
 				panic(err)
 			}
 			kvWB = new(engine_util.WriteBatch)
-			txn = d.ctx.engine.Kv.NewTransaction(false)
+			txn = engine_util.NewTxn(d.ctx.engine.Kv)
 			resp.Responses = append(resp.Responses, &raft_cmdpb.Response{
 				CmdType: 	raft_cmdpb.CmdType_Snap,
 				Snap: 		&raft_cmdpb.SnapResponse{Region: d.Region()},
@@ -416,7 +416,7 @@ func (d *peerMsgHandler) processConfChange(ent *eraftpb.Entry, kvWB *engine_util
 	return kvWB
 }
 
-func (d *peerMsgHandler) handleProposal(ent *eraftpb.Entry, resp *raft_cmdpb.RaftCmdResponse, txn *badger.Txn) {
+func (d *peerMsgHandler) handleProposal(ent *eraftpb.Entry, resp *raft_cmdpb.RaftCmdResponse, txn *engine_util.Txn) {
 	for len(d.proposals) > 0 {
 		p := d.proposals[0]
 

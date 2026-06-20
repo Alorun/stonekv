@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/config"
 	"github.com/Alorun/stonekv/kv/raftstore"
 	"github.com/Alorun/stonekv/kv/raftstore/message"
@@ -199,7 +198,7 @@ func (c *NodeSimulator) GetStoreIds() []uint64 {
 	return storeIDs
 }
 
-func (c *NodeSimulator) CallCommandOnStore(storeID uint64, request *raft_cmdpb.RaftCmdRequest, timeout time.Duration) (*raft_cmdpb.RaftCmdResponse, *badger.Txn) {
+func (c *NodeSimulator) CallCommandOnStore(storeID uint64, request *raft_cmdpb.RaftCmdRequest, timeout time.Duration) (*raft_cmdpb.RaftCmdResponse, *engine_util.Txn) {
 	c.RLock()
 	router := c.trans.routers[storeID]
 	if router == nil {

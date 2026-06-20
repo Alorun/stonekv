@@ -3,9 +3,9 @@ package runner
 import (
 	"context"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/raftstore/message"
 	"github.com/Alorun/stonekv/kv/raftstore/scheduler_client"
+	"github.com/Alorun/stonekv/kv/util/rocketdb"
 	"github.com/Alorun/stonekv/kv/util/worker"
 	"github.com/Alorun/stonekv/log"
 	"github.com/Alorun/stonekv/proto/pkg/metapb"
@@ -30,7 +30,7 @@ type SchedulerRegionHeartbeatTask struct {
 
 type SchedulerStoreHeartbeatTask struct {
 	Stats  *schedulerpb.StoreStats
-	Engine *badger.DB
+	Engine *rocketdb.DB
 	Path   string
 }
 
@@ -125,8 +125,18 @@ func (r *SchedulerTaskHandler) onStoreHeartbeat(t *SchedulerStoreHeartbeatTask) 
 	}
 
 	capacity := diskStat.Total
-	lsmSize, vlogSize := t.Engine.Size()
-	usedSize := t.Stats.UsedSize + uint64(lsmSize) + uint64(vlogSize) // t.Stats.UsedSize contains size of snapshot files.
+	// badger exposed Size() (lsm + vlog bytes); rocketdb does not, so we
+	// approximate the on-disk data size via GetApproximateSizes over the whole
+	// keyspace.
+	var dbSize uint64
+	sizes := t.Engine.GetApproximateSizes([]rocketdb.Range{{
+		Start: []byte{},
+		Limit: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+	}})
+	if len(sizes) > 0 {
+		dbSize = sizes[0]
+	}
+	usedSize := t.Stats.UsedSize + dbSize // t.Stats.UsedSize contains size of snapshot files.
 	available := uint64(0)
 	if capacity > usedSize {
 		available = capacity - usedSize

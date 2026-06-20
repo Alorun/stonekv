@@ -1,15 +1,15 @@
 package runner
 
 import (
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/raftstore/meta"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/kv/util/rocketdb"
 	"github.com/Alorun/stonekv/kv/util/worker"
 	"github.com/Alorun/stonekv/log"
 )
 
 type RaftLogGCTask struct {
-	RaftEngine *badger.DB
+	RaftEngine *rocketdb.DB
 	RegionID   uint64
 	StartIdx   uint64
 	EndIdx     uint64
@@ -26,23 +26,26 @@ func NewRaftLogGCTaskHandler() *raftLogGCTaskHandler {
 }
 
 // gcRaftLog does the GC job and returns the count of logs collected.
-func (r *raftLogGCTaskHandler) gcRaftLog(raftDb *badger.DB, regionId, startIdx, endIdx uint64) (uint64, error) {
+func (r *raftLogGCTaskHandler) gcRaftLog(raftDb *rocketdb.DB, regionId, startIdx, endIdx uint64) (uint64, error) {
 	// Find the raft log idx range needed to be gc.
 	firstIdx := startIdx
 	if firstIdx == 0 {
 		firstIdx = endIdx
-		err := raftDb.View(func(txn *badger.Txn) error {
-			startKey := meta.RaftLogKey(regionId, 0)
-			ite := txn.NewIterator(badger.DefaultIteratorOptions)
+		err := func() error {
+			txn := engine_util.NewTxn(raftDb)
+			defer txn.Discard()
+			ite := txn.NewRawIterator()
 			defer ite.Close()
+			startKey := meta.RaftLogKey(regionId, 0)
 			if ite.Seek(startKey); ite.Valid() {
-				var err error
-				if firstIdx, err = meta.RaftLogIndex(ite.Item().Key()); err != nil {
+				idx, err := meta.RaftLogIndex(ite.Key())
+				if err != nil {
 					return err
 				}
+				firstIdx = idx
 			}
 			return nil
-		})
+		}()
 		if err != nil {
 			return 0, err
 		}

@@ -3,12 +3,12 @@ package runner
 import (
 	"encoding/hex"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/config"
 	"github.com/Alorun/stonekv/kv/raftstore/message"
 	"github.com/Alorun/stonekv/kv/raftstore/util"
 	"github.com/Alorun/stonekv/kv/util/codec"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/kv/util/rocketdb"
 	"github.com/Alorun/stonekv/kv/util/worker"
 	"github.com/Alorun/stonekv/log"
 	"github.com/Alorun/stonekv/proto/pkg/metapb"
@@ -19,12 +19,12 @@ type SplitCheckTask struct {
 }
 
 type splitCheckHandler struct {
-	engine  *badger.DB
+	engine  *rocketdb.DB
 	router  message.RaftRouter
 	checker *sizeSplitChecker
 }
 
-func NewSplitCheckHandler(engine *badger.DB, router message.RaftRouter, conf *config.Config) *splitCheckHandler {
+func NewSplitCheckHandler(engine *rocketdb.DB, router message.RaftRouter, conf *config.Config) *splitCheckHandler {
 	runner := &splitCheckHandler{
 		engine:  engine,
 		router:  router,
@@ -71,7 +71,7 @@ func (r *splitCheckHandler) Handle(t worker.Task) {
 
 /// SplitCheck gets the split keys by scanning the range.
 func (r *splitCheckHandler) splitCheck(regionID uint64, startKey, endKey []byte) []byte {
-	txn := r.engine.NewTransaction(false)
+	txn := engine_util.NewTxn(r.engine)
 	defer txn.Discard()
 
 	r.checker.reset()

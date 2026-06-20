@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Connor1996/badger"
 	"github.com/juju/errors"
 	"github.com/Alorun/stonekv/kv/raftstore/meta"
 	"github.com/Alorun/stonekv/kv/raftstore/snap"
 	"github.com/Alorun/stonekv/kv/raftstore/util"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/kv/util/rocketdb"
 	"github.com/Alorun/stonekv/kv/util/worker"
 	"github.com/Alorun/stonekv/log"
 	"github.com/Alorun/stonekv/proto/pkg/eraftpb"
@@ -139,7 +139,7 @@ func (snapCtx *snapContext) cleanUpRange(regionId uint64, startKey, endKey []byt
 	}
 }
 
-func getAppliedIdxTermForSnapshot(raft *badger.DB, kv *badger.Txn, regionId uint64) (uint64, uint64, error) {
+func getAppliedIdxTermForSnapshot(raft *rocketdb.DB, kv *engine_util.Txn, regionId uint64) (uint64, uint64, error) {
 	applyState := new(rspb.RaftApplyState)
 	err := engine_util.GetMetaFromTxn(kv, meta.ApplyStateKey(regionId), applyState)
 	if err != nil {
@@ -164,7 +164,7 @@ func getAppliedIdxTermForSnapshot(raft *badger.DB, kv *badger.Txn, regionId uint
 func doSnapshot(engines *engine_util.Engines, mgr *snap.SnapManager, regionId uint64) (*eraftpb.Snapshot, error) {
 	log.Debugf("begin to generate a snapshot. [regionId: %d]", regionId)
 
-	txn := engines.Kv.NewTransaction(false)
+	txn := engine_util.NewTxn(engines.Kv)
 
 	index, term, err := getAppliedIdxTermForSnapshot(engines.Raft, txn, regionId)
 	if err != nil {

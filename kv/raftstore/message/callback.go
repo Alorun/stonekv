@@ -3,13 +3,13 @@ package message
 import (
 	"time"
 
-	"github.com/Connor1996/badger"
+	"github.com/Alorun/stonekv/kv/util/engine_util"
 	"github.com/Alorun/stonekv/proto/pkg/raft_cmdpb"
 )
 
 type Callback struct {
 	Resp *raft_cmdpb.RaftCmdResponse
-	Txn  *badger.Txn // used for GetSnap
+	Txn  *engine_util.Txn // used for GetSnap
 	done chan struct{}
 }
 

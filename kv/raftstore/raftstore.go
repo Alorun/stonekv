@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Connor1996/badger"
 	"github.com/Connor1996/badger/y"
 	"github.com/Alorun/stonekv/kv/config"
 	"github.com/Alorun/stonekv/kv/raftstore/message"
@@ -120,26 +119,24 @@ func (bs *Raftstore) loadPeers() ([]*peer, error) {
 	t := time.Now()
 	kvWB := new(engine_util.WriteBatch)
 	raftWB := new(engine_util.WriteBatch)
-	err := kvEngine.View(func(txn *badger.Txn) error {
+	err := func() error {
+		txn := engine_util.NewTxn(kvEngine)
+		defer txn.Discard()
 		// get all regions from RegionLocalState
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		it := txn.NewRawIterator()
 		defer it.Close()
 		for it.Seek(startKey); it.Valid(); it.Next() {
-			item := it.Item()
-			if bytes.Compare(item.Key(), endKey) >= 0 {
+			if bytes.Compare(it.Key(), endKey) >= 0 {
 				break
 			}
-			regionID, suffix, err := meta.DecodeRegionMetaKey(item.Key())
+			regionID, suffix, err := meta.DecodeRegionMetaKey(it.Key())
 			if err != nil {
 				return err
 			}
 			if suffix != meta.RegionStateSuffix {
 				continue
 			}
-			val, err := item.Value()
-			if err != nil {
-				return errors.WithStack(err)
-			}
+			val := it.Value()
 			totalCount++
 			localState := new(rspb.RegionLocalState)
 			err = localState.Unmarshal(val)
@@ -164,7 +161,7 @@ func (bs *Raftstore) loadPeers() ([]*peer, error) {
 			regionPeers = append(regionPeers, peer)
 		}
 		return nil
-	})
+	}()
 	if err != nil {
 		return nil, err
 	}

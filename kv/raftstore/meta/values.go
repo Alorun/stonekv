@@ -3,12 +3,13 @@ package meta
 import (
 	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/kv/util/rocketdb"
 	"github.com/Alorun/stonekv/proto/pkg/eraftpb"
 	"github.com/Alorun/stonekv/proto/pkg/metapb"
 	rspb "github.com/Alorun/stonekv/proto/pkg/raft_serverpb"
 )
 
-func GetRegionLocalState(db *badger.DB, regionId uint64) (*rspb.RegionLocalState, error) {
+func GetRegionLocalState(db *rocketdb.DB, regionId uint64) (*rspb.RegionLocalState, error) {
 	regionLocalState := new(rspb.RegionLocalState)
 	if err := engine_util.GetMeta(db, RegionStateKey(regionId), regionLocalState); err != nil {
 		return regionLocalState, err
@@ -16,7 +17,7 @@ func GetRegionLocalState(db *badger.DB, regionId uint64) (*rspb.RegionLocalState
 	return regionLocalState, nil
 }
 
-func GetRaftLocalState(db *badger.DB, regionId uint64) (*rspb.RaftLocalState, error) {
+func GetRaftLocalState(db *rocketdb.DB, regionId uint64) (*rspb.RaftLocalState, error) {
 	raftLocalState := new(rspb.RaftLocalState)
 	if err := engine_util.GetMeta(db, RaftStateKey(regionId), raftLocalState); err != nil {
 		return raftLocalState, err
@@ -24,7 +25,7 @@ func GetRaftLocalState(db *badger.DB, regionId uint64) (*rspb.RaftLocalState, er
 	return raftLocalState, nil
 }
 
-func GetApplyState(db *badger.DB, regionId uint64) (*rspb.RaftApplyState, error) {
+func GetApplyState(db *rocketdb.DB, regionId uint64) (*rspb.RaftApplyState, error) {
 	applyState := new(rspb.RaftApplyState)
 	if err := engine_util.GetMeta(db, ApplyStateKey(regionId), applyState); err != nil {
 		return nil, err
@@ -32,7 +33,7 @@ func GetApplyState(db *badger.DB, regionId uint64) (*rspb.RaftApplyState, error)
 	return applyState, nil
 }
 
-func GetRaftEntry(db *badger.DB, regionId, idx uint64) (*eraftpb.Entry, error) {
+func GetRaftEntry(db *rocketdb.DB, regionId, idx uint64) (*eraftpb.Entry, error) {
 	entry := new(eraftpb.Entry)
 	if err := engine_util.GetMeta(db, RaftLogKey(regionId, idx), entry); err != nil {
 		return nil, err
@@ -47,7 +48,7 @@ const (
 	RaftInitLogIndex = 5
 )
 
-func InitRaftLocalState(raftEngine *badger.DB, region *metapb.Region) (*rspb.RaftLocalState, error) {
+func InitRaftLocalState(raftEngine *rocketdb.DB, region *metapb.Region) (*rspb.RaftLocalState, error) {
 	raftState, err := GetRaftLocalState(raftEngine, region.Id)
 	if err != nil && err != badger.ErrKeyNotFound {
 		return nil, err
@@ -70,7 +71,7 @@ func InitRaftLocalState(raftEngine *badger.DB, region *metapb.Region) (*rspb.Raf
 	return raftState, nil
 }
 
-func InitApplyState(kvEngine *badger.DB, region *metapb.Region) (*rspb.RaftApplyState, error) {
+func InitApplyState(kvEngine *rocketdb.DB, region *metapb.Region) (*rspb.RaftApplyState, error) {
 	applyState, err := GetApplyState(kvEngine, region.Id)
 	if err != nil && err != badger.ErrKeyNotFound {
 		return nil, err

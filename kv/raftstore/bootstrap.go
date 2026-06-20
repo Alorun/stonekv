@@ -3,9 +3,9 @@ package raftstore
 import (
 	"bytes"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/raftstore/meta"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/kv/util/rocketdb"
 	"github.com/Alorun/stonekv/proto/pkg/eraftpb"
 	"github.com/Alorun/stonekv/proto/pkg/metapb"
 	rspb "github.com/Alorun/stonekv/proto/pkg/raft_serverpb"
@@ -17,24 +17,23 @@ const (
 	InitEpochConfVer uint64 = 1
 )
 
-func isRangeEmpty(engine *badger.DB, startKey, endKey []byte) (bool, error) {
+func isRangeEmpty(engine *rocketdb.DB, startKey, endKey []byte) (bool, error) {
 	var hasData bool
-	err := engine.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
+	txn := engine_util.NewTxn(engine)
+	defer txn.Discard()
+	it := txn.NewRawIterator()
+	defer it.Close()
+	if len(startKey) == 0 {
+		it.SeekToFirst()
+	} else {
 		it.Seek(startKey)
-		if it.Valid() {
-			item := it.Item()
-			if bytes.Compare(item.Key(), endKey) < 0 {
-				hasData = true
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return false, errors.WithStack(err)
 	}
-	return !hasData, err
+	if it.Valid() {
+		if bytes.Compare(it.Key(), endKey) < 0 {
+			hasData = true
+		}
+	}
+	return !hasData, nil
 }
 
 func BootstrapStore(engines *engine_util.Engines, clusterID, storeID uint64) error {
@@ -128,10 +127,9 @@ func writeInitialRaftState(raftWB *engine_util.WriteBatch, regionID uint64) {
 }
 
 func ClearPrepareBootstrap(engines *engine_util.Engines, regionID uint64) error {
-	err := engines.Raft.Update(func(txn *badger.Txn) error {
-		return txn.Delete(meta.RaftStateKey(regionID))
-	})
-	if err != nil {
+	raftWB := new(engine_util.WriteBatch)
+	raftWB.DeleteMeta(meta.RaftStateKey(regionID))
+	if err := engines.WriteRaft(raftWB); err != nil {
 		return errors.WithStack(err)
 	}
 	wb := new(engine_util.WriteBatch)
@@ -139,16 +137,14 @@ func ClearPrepareBootstrap(engines *engine_util.Engines, regionID uint64) error 
 	// should clear raft initial state too.
 	wb.DeleteMeta(meta.RegionStateKey(regionID))
 	wb.DeleteMeta(meta.ApplyStateKey(regionID))
-	err = engines.WriteKV(wb)
-	if err != nil {
+	if err := engines.WriteKV(wb); err != nil {
 		return err
 	}
 	return nil
 }
 
 func ClearPrepareBootstrapState(engines *engine_util.Engines) error {
-	err := engines.Kv.Update(func(txn *badger.Txn) error {
-		return txn.Delete(meta.PrepareBootstrapKey)
-	})
-	return errors.WithStack(err)
+	kvWB := new(engine_util.WriteBatch)
+	kvWB.DeleteMeta(meta.PrepareBootstrapKey)
+	return errors.WithStack(engines.WriteKV(kvWB))
 }

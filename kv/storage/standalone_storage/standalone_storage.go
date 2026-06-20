@@ -26,11 +26,12 @@ func (s *StandAloneStorage) Start() error {
 }
 
 func (s *StandAloneStorage) Stop() error {
-	return s.engines_.Kv.Close()
+	s.engines_.Kv.Close()
+	return nil
 }
 
 func (s *StandAloneStorage) Reader(ctx *kvrpcpb.Context) (storage.StorageReader, error) {
-	txn := s.engines_.Kv.NewTransaction(false)
+	txn := engine_util.NewTxn(s.engines_.Kv)
 	return &storageReader{txn_: txn}, nil
 }
 
@@ -49,7 +50,7 @@ func (s *StandAloneStorage) Write(ctx *kvrpcpb.Context, batch []storage.Modify) 
 }
 
 type storageReader struct {
-	txn_ *badger.Txn
+	txn_ *engine_util.Txn
 }
 
 func (r *storageReader) GetCF(cf string, key []byte) ([]byte, error) {

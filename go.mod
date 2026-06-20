@@ -32,6 +32,6 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
 
-go 1.13
+go 1.18
 
 replace github.com/pingcap/tidb => github.com/pingcap-incubator/tinysql v0.0.0-20200518090433-a7d00f9e6aa7

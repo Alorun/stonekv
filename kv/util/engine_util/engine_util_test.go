@@ -11,11 +11,9 @@ import (
 
 func TestEngineUtil(t *testing.T) {
 	dir, err := ioutil.TempDir("", "engine_util")
-	opts := badger.DefaultOptions
-	opts.Dir = dir
-	opts.ValueDir = dir
-	db, err := badger.Open(opts)
 	require.Nil(t, err)
+	db := CreateDB(dir, false)
+	defer db.Close()
 
 	batch := new(WriteBatch)
 	batch.SetCF(CfDefault, []byte("a"), []byte("a1"))
@@ -44,7 +42,7 @@ func TestEngineUtil(t *testing.T) {
 	_, err = GetCF(db, CfDefault, []byte("e"))
 	require.Equal(t, err, badger.ErrKeyNotFound)
 
-	txn := db.NewTransaction(false)
+	txn := NewTxn(db)
 	defer txn.Discard()
 	defaultIter := NewCFIterator(CfDefault, txn)
 	defaultIter.Seek([]byte("a"))

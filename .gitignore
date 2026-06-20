@@ -5,3 +5,9 @@ unikv/unikv
 bin/*
 _tools
 /vendor
+
+# rocketdb cgo deps: local symlinks pointing to the rocketdb engine repo
+# (headers + prebuilt librocketdb.a). These are machine-specific and must NOT
+# be committed; each developer recreates them locally (see README).
+/kv/util/rocketdb/cdeps/include
+/kv/util/rocketdb/cdeps/lib

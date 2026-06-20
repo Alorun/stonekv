@@ -8,11 +8,11 @@ import (
 )
 
 type RegionReader struct {
-	txn    *badger.Txn
+	txn    *engine_util.Txn
 	region *metapb.Region
 }
 
-func NewRegionReader(txn *badger.Txn, region metapb.Region) *RegionReader {
+func NewRegionReader(txn *engine_util.Txn, region metapb.Region) *RegionReader {
 	return &RegionReader{
 		txn:    txn,
 		region: &region,

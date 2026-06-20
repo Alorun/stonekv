@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/config"
 	"github.com/Alorun/stonekv/kv/raftstore"
 	"github.com/Alorun/stonekv/kv/storage/raft_storage"
@@ -27,7 +26,7 @@ type Simulator interface {
 	AddFilter(filter Filter)
 	ClearFilters()
 	GetStoreIds() []uint64
-	CallCommandOnStore(storeID uint64, request *raft_cmdpb.RaftCmdRequest, timeout time.Duration) (*raft_cmdpb.RaftCmdResponse, *badger.Txn)
+	CallCommandOnStore(storeID uint64, request *raft_cmdpb.RaftCmdRequest, timeout time.Duration) (*raft_cmdpb.RaftCmdResponse, *engine_util.Txn)
 }
 
 type Cluster struct {
@@ -183,7 +182,7 @@ func (c *Cluster) AllocPeer(storeID uint64) *metapb.Peer {
 	return NewPeer(storeID, id)
 }
 
-func (c *Cluster) Request(key []byte, reqs []*raft_cmdpb.Request, timeout time.Duration) (*raft_cmdpb.RaftCmdResponse, *badger.Txn) {
+func (c *Cluster) Request(key []byte, reqs []*raft_cmdpb.Request, timeout time.Duration) (*raft_cmdpb.RaftCmdResponse, *engine_util.Txn) {
 	startTime := time.Now()
 	for i := 0; i < 10 || time.Since(startTime) < timeout; i++ {
 		region := c.GetRegion(key)
@@ -204,12 +203,12 @@ func (c *Cluster) Request(key []byte, reqs []*raft_cmdpb.Request, timeout time.D
 	panic("request timeout")
 }
 
-func (c *Cluster) CallCommand(request *raft_cmdpb.RaftCmdRequest, timeout time.Duration) (*raft_cmdpb.RaftCmdResponse, *badger.Txn) {
+func (c *Cluster) CallCommand(request *raft_cmdpb.RaftCmdRequest, timeout time.Duration) (*raft_cmdpb.RaftCmdResponse, *engine_util.Txn) {
 	storeID := request.Header.Peer.StoreId
 	return c.simulator.CallCommandOnStore(storeID, request, timeout)
 }
 
-func (c *Cluster) CallCommandOnLeader(request *raft_cmdpb.RaftCmdRequest, timeout time.Duration) (*raft_cmdpb.RaftCmdResponse, *badger.Txn) {
+func (c *Cluster) CallCommandOnLeader(request *raft_cmdpb.RaftCmdRequest, timeout time.Duration) (*raft_cmdpb.RaftCmdResponse, *engine_util.Txn) {
 	startTime := time.Now()
 	regionID := request.Header.RegionId
 	leader := c.LeaderOfRegion(regionID)
@@ -374,7 +373,8 @@ func (c *Cluster) Scan(start, end []byte) [][]byte {
 			panic("resp.Responses[0].CmdType != raft_cmdpb.CmdType_Snap")
 		}
 		region := resp.Responses[0].GetSnap().Region
-		iter := raft_storage.NewRegionReader(txn, *region).IterCF(engine_util.CfDefault)
+		reader := raft_storage.NewRegionReader(txn, *region)
+		iter := reader.IterCF(engine_util.CfDefault)
 		for iter.Seek(key); iter.Valid(); iter.Next() {
 			if engine_util.ExceedEndKey(iter.Item().Key(), end) {
 				break
@@ -386,6 +386,10 @@ func (c *Cluster) Scan(start, end []byte) [][]byte {
 			values = append(values, value)
 		}
 		iter.Close()
+		// Release the snapshot/ReadOptions held by the GetSnap txn. With badger
+		// this was reclaimed by GC, but rocketdb's C resources must be freed
+		// explicitly or they pile up and crash the engine on close/seek.
+		reader.Close()
 
 		key = region.EndKey
 		if len(key) == 0 {

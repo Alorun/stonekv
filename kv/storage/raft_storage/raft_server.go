@@ -209,11 +209,7 @@ func (rs *RaftStorage) Stop() error {
 	rs.node.Stop()
 	rs.resolveWorker.Stop()
 	rs.wg.Wait()
-	if err := rs.engines.Raft.Close(); err != nil {
-		return err
-	}
-	if err := rs.engines.Kv.Close(); err != nil {
-		return err
-	}
+	rs.engines.Raft.Close()
+	rs.engines.Kv.Close()
 	return nil
 }
