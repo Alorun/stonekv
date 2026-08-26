@@ -5,7 +5,6 @@ import (
 	"github.com/Alorun/stonekv/kv/storage"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
 	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
-	"github.com/Connor1996/badger"
 )
 
 // It is an implementation of `Storage` for a single-node KV instance.
@@ -55,7 +54,7 @@ type storageReader struct {
 
 func (r *storageReader) GetCF(cf string, key []byte) ([]byte, error) {
 	val, err := engine_util.GetCFFromTxn(r.txn_, cf, key)
-	if err == badger.ErrKeyNotFound {
+	if err == engine_util.ErrKeyNotFound {
 		return nil, nil
 	}
 	return val, nil

@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/Connor1996/badger"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +30,7 @@ func TestEngineUtil(t *testing.T) {
 	require.Nil(t, err)
 
 	_, err = GetCF(db, CfDefault, []byte("e"))
-	require.Equal(t, err, badger.ErrKeyNotFound)
+	require.ErrorIs(t, err, ErrKeyNotFound)
 
 	err = PutCF(db, CfDefault, []byte("e"), []byte("e2"))
 	require.Nil(t, err)
@@ -40,7 +39,7 @@ func TestEngineUtil(t *testing.T) {
 	err = DeleteCF(db, CfDefault, []byte("e"))
 	require.Nil(t, err)
 	_, err = GetCF(db, CfDefault, []byte("e"))
-	require.Equal(t, err, badger.ErrKeyNotFound)
+	require.ErrorIs(t, err, ErrKeyNotFound)
 
 	txn := NewTxn(db)
 	defer txn.Discard()

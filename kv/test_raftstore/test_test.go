@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/config"
 	"github.com/Alorun/stonekv/kv/raftstore/meta"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
@@ -300,7 +299,7 @@ func GenericTest(t *testing.T, part string, nclients int, unreliable bool, crash
 				}
 				for _, engine := range cluster.engines {
 					state, err := meta.GetApplyState(engine.Kv, region.GetId())
-					if err == badger.ErrKeyNotFound {
+					if err == engine_util.ErrKeyNotFound {
 						continue
 					}
 					if err != nil {

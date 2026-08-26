@@ -125,7 +125,7 @@ func (r *SchedulerTaskHandler) onStoreHeartbeat(t *SchedulerStoreHeartbeatTask) 
 	}
 
 	capacity := diskStat.Total
-	// badger exposed Size() (lsm + vlog bytes); rocketdb does not, so we
+	// db exposed Size() (lsm + vlog bytes); rocketdb does not, so we
 	// approximate the on-disk data size via GetApproximateSizes over the whole
 	// keyspace.
 	var dbSize uint64

@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-// Snapshot CF files used to be badger SST files, ingested via
+// Snapshot CF files used to be db SST files, ingested via
 // badger.DB.IngestExternalFiles. The rocketdb engine exposes no SST ingest, so
 // snapshot CF files now use a simple self-describing record stream instead:
 //

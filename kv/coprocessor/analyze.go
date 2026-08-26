@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/Connor1996/badger/y"
 	"github.com/golang/protobuf/proto"
 	"github.com/juju/errors"
 	"github.com/Alorun/stonekv/kv/storage"
@@ -58,7 +57,9 @@ func (svr *CopHandler) HandleCopAnalyzeRequest(reader storage.StorageReader, req
 		resp.OtherError = err.Error()
 		return resp
 	}
-	y.Assert(len(ranges) == 1)
+	if len(ranges) != 1 {
+		panic("analyze request must contain exactly one key range")
+	}
 	if analyzeReq.Tp == tipb.AnalyzeType_TypeIndex {
 		resp, err = svr.handleAnalyzeIndexReq(reader, ranges[0], analyzeReq, req.StartTs)
 	} else {

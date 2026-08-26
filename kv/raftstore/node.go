@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/config"
 	"github.com/Alorun/stonekv/kv/raftstore/meta"
 	"github.com/Alorun/stonekv/kv/raftstore/scheduler_client"
@@ -79,7 +78,7 @@ func (n *Node) checkStore(engines *engine_util.Engines) (uint64, error) {
 	ident := new(raft_serverpb.StoreIdent)
 	err := engine_util.GetMeta(engines.Kv, meta.StoreIdentKey, ident)
 	if err != nil {
-		if err == badger.ErrKeyNotFound {
+		if err == engine_util.ErrKeyNotFound {
 			return 0, nil
 		}
 		return 0, err

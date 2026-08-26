@@ -7,8 +7,7 @@ import (
 )
 
 // writeBatchEntry is one staged mutation. An empty Value means "delete this
-// key" — this matches the semantics the badger-backed implementation used, so
-// upper layers behave identically.
+// key".
 type writeBatchEntry struct {
 	Key   []byte
 	Value []byte
@@ -19,7 +18,6 @@ type WriteBatch struct {
 	size          int
 	safePoint     int
 	safePointSize int
-	safePointUndo int
 }
 
 const (
@@ -112,5 +110,4 @@ func (wb *WriteBatch) Reset() {
 	wb.size = 0
 	wb.safePoint = 0
 	wb.safePointSize = 0
-	wb.safePointUndo = 0
 }

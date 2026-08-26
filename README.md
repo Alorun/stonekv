@@ -8,7 +8,7 @@ This is a Go implementation of a TiKV/TinyKV style distributed key-value (KV) pr
 
 - kv/server/: External gRPC API, implementing both the Raw KV and transactional (MVCC) interfaces.
 
-- kv/storage/: Abstract storage layer, including single-machine Badger storage and Raft-backed storage.
+- kv/storage/: Abstract storage layer, including single-machine RocketDB storage and Raft-backed storage.
 
 - kv/raftstore/: TiKV-like logic such as Region, Peer, Raft message processing, snapshots, splitting, and scheduling heartbeats.
 
@@ -18,21 +18,18 @@ This is a Go implementation of a TiKV/TinyKV style distributed key-value (KV) pr
 
 - proto/: gRPC/protobuf definition and generation code.
 
-### Prerequisites: RocketDB Engine Dependency
+### RocketDB Engine Dependency
 
-The underlying key-value engine of this project is the self-developed RocketDB, called through the `kv/util/rocketdb` cgo binding.
+The underlying key-value engine is the self-developed RocketDB, called through the `kv/util/rocketdb` cgo binding.
 
-The RocketDB C++ source code and compilation artifacts **are not included in this repository**, and need to be prepared locally and symbolic links created:
+The public headers and the compiled release static library are bundled in `kv/util/rocketdb/cdeps`, so building StoneKV does not depend on an external RocketDB checkout or symbolic links.
 
-1. Compile RocketDB elsewhere to obtain include/ header files and build-release/librocketdb.a
-2. Create two symbolic links in this repository (ignored by .gitignore):
+To update the bundled RocketDB artifacts after building RocketDB elsewhere:
 
-ln -s <rocketdb>/include kv/util/rocketdb/cdeps/include
+```sh
+cp -a <rocketdb>/include/. kv/util/rocketdb/cdeps/include/
+cp <rocketdb>/build-release/librocketdb.a kv/util/rocketdb/cdeps/lib/librocketdb.a
+CGO_ENABLED=1 make BUILD_FLAG=-a default
+```
 
-ln -s <rocketdb>/build-release kv/util/rocketdb/cdeps/lib
-
-Then compile/test using `CGO_ENABLED=1`:
-
-CGO_ENABLED=1 go build ./...
-
-CGO_ENABLED=1 go test ./kv/util/rocketdb/
+`BUILD_FLAG=-a` forces Go to relink against the updated static library.

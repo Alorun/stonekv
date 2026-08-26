@@ -3,7 +3,6 @@ package raftstore
 import (
 	"sync"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/config"
 	"github.com/Alorun/stonekv/kv/raftstore/message"
 	"github.com/Alorun/stonekv/kv/raftstore/meta"
@@ -109,7 +108,7 @@ func (d *storeWorker) checkMsg(msg *rspb.RaftMessage) (bool, error) {
 	localState := new(rspb.RegionLocalState)
 	err := engine_util.GetMeta(d.ctx.engine.Kv, stateKey, localState)
 	if err != nil {
-		if err == badger.ErrKeyNotFound {
+		if err == engine_util.ErrKeyNotFound {
 			return false, nil
 		}
 		return false, err

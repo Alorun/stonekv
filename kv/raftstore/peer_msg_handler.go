@@ -16,8 +16,6 @@ import (
 	"github.com/Alorun/stonekv/proto/pkg/raft_cmdpb"
 	rspb "github.com/Alorun/stonekv/proto/pkg/raft_serverpb"
 	"github.com/Alorun/stonekv/scheduler/pkg/btree"
-	"github.com/Connor1996/badger"
-	"github.com/Connor1996/badger/y"
 	"github.com/pingcap/errors"
 )
 
@@ -323,7 +321,7 @@ func (d *peerMsgHandler) processCommittedEntry(ent *eraftpb.Entry, kvWB *engine_
 			}
 			kvWB = new(engine_util.WriteBatch)
 			val, err := engine_util.GetCF(d.ctx.engine.Kv, req.Get.Cf, req.Get.Key)
-			if err != nil && err != badger.ErrKeyNotFound {
+			if err != nil && err != engine_util.ErrKeyNotFound {
 				panic(err)
 			}
 			resp.Responses = append(resp.Responses, &raft_cmdpb.Response{
@@ -861,7 +859,9 @@ func (d *peerMsgHandler) onRaftGCLogTick() {
 		return
 	}
 
-	y.Assert(compactIdx > 0)
+	if compactIdx == 0 {
+		panic("raft log compact index must be greater than zero")
+	}
 	compactIdx -= 1
 	if compactIdx < firstIdx {
 		// In case compact_idx == first_idx before subtraction.

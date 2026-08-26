@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Connor1996/badger/y"
 	"github.com/Alorun/stonekv/kv/config"
 	"github.com/Alorun/stonekv/kv/raftstore/message"
 	"github.com/Alorun/stonekv/kv/raftstore/meta"
@@ -214,7 +213,9 @@ func (bs *Raftstore) start(
 	trans Transport,
 	schedulerClient scheduler_client.Client,
 	snapMgr *snap.SnapManager) error {
-	y.Assert(bs.workers == nil)
+	if bs.workers != nil {
+		panic("raftstore has already been started")
+	}
 	// TODO: we can get cluster meta regularly too later.
 	if err := cfg.Validate(); err != nil {
 		return err

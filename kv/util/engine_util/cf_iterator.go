@@ -36,23 +36,23 @@ func (i *CFItem) ValueCopy(dst []byte) ([]byte, error) {
 	return append(dst[:0], i.value...), nil
 }
 
-// BadgerIterator wraps a rocketdb iterator and restricts it to a single column
+// CFIterator wraps a RocketDB iterator and restricts it to a single column
 // family. rocketdb has no prefix-scan option, so the "<cf>_" prefix is enforced
 // here: Seek prepends it, and Valid checks that the underlying key still starts
 // with it (a key that no longer has the prefix means we walked past the CF).
-type BadgerIterator struct {
+type CFIterator struct {
 	iter   *rocketdb.Iterator
 	prefix []byte
 }
 
-func NewCFIterator(cf string, txn *Txn) *BadgerIterator {
-	return &BadgerIterator{
+func NewCFIterator(cf string, txn *Txn) *CFIterator {
+	return &CFIterator{
 		iter:   txn.db.NewIterator(txn.ro),
 		prefix: []byte(cf + "_"),
 	}
 }
 
-func (it *BadgerIterator) Item() DBItem {
+func (it *CFIterator) Item() DBItem {
 	return &CFItem{
 		key:       it.iter.Key(),
 		value:     it.iter.Value(),
@@ -61,29 +61,29 @@ func (it *BadgerIterator) Item() DBItem {
 }
 
 // Valid reports whether the iterator points at a key still inside this CF.
-func (it *BadgerIterator) Valid() bool {
+func (it *CFIterator) Valid() bool {
 	return it.iter.Valid() && bytes.HasPrefix(it.iter.Key(), it.prefix)
 }
 
-func (it *BadgerIterator) ValidForPrefix(prefix []byte) bool {
+func (it *CFIterator) ValidForPrefix(prefix []byte) bool {
 	full := append(append([]byte{}, it.prefix...), prefix...)
 	return it.iter.Valid() && bytes.HasPrefix(it.iter.Key(), full)
 }
 
-func (it *BadgerIterator) Close() {
+func (it *CFIterator) Close() {
 	it.iter.Close()
 }
 
-func (it *BadgerIterator) Next() {
+func (it *CFIterator) Next() {
 	it.iter.Next()
 }
 
-func (it *BadgerIterator) Seek(key []byte) {
+func (it *CFIterator) Seek(key []byte) {
 	it.iter.Seek(append(append([]byte{}, it.prefix...), key...))
 }
 
 // Rewind moves to the first key of this CF.
-func (it *BadgerIterator) Rewind() {
+func (it *CFIterator) Rewind() {
 	it.iter.Seek(it.prefix)
 }
 

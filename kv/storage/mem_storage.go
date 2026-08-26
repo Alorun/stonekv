@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/Connor1996/badger/y"
 	"github.com/petar/GoLLRB/llrb"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
 	"github.com/Alorun/stonekv/proto/pkg/kvrpcpb"
@@ -233,7 +232,7 @@ func (it memItem) Key() []byte {
 	return it.key
 }
 func (it memItem) KeyCopy(dst []byte) []byte {
-	return y.SafeCopy(dst, it.key)
+	return append(dst[:0], it.key...)
 }
 func (it memItem) Value() ([]byte, error) {
 	return it.value, nil
@@ -242,7 +241,7 @@ func (it memItem) ValueSize() int {
 	return len(it.value)
 }
 func (it memItem) ValueCopy(dst []byte) ([]byte, error) {
-	return y.SafeCopy(dst, it.value), nil
+	return append(dst[:0], it.value...), nil
 }
 
 func (it memItem) Less(than llrb.Item) bool {

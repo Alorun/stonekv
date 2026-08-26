@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/raftstore/message"
 	"github.com/Alorun/stonekv/kv/raftstore/meta"
 	"github.com/Alorun/stonekv/kv/raftstore/snap"
@@ -184,7 +183,7 @@ func raftLogMustNotExist(t *testing.T, db *rocketdb.DB, regionId, startIdx, endI
 	for i := startIdx; i < endIdx; i++ {
 		k := meta.RaftLogKey(regionId, i)
 		err := engine_util.GetMeta(db, k, &eraftpb.Entry{})
-		assert.Equal(t, badger.ErrKeyNotFound, err)
+		assert.ErrorIs(t, err, engine_util.ErrKeyNotFound)
 	}
 }
 

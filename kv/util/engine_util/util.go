@@ -2,11 +2,14 @@ package engine_util
 
 import (
 	"bytes"
+	"errors"
 
 	"github.com/Alorun/stonekv/kv/util/rocketdb"
-	"github.com/Connor1996/badger"
 	"github.com/golang/protobuf/proto"
 )
+
+// ErrKeyNotFound is returned when a key does not exist in RocketDB.
+var ErrKeyNotFound = errors.New("key not found")
 
 // Shared, immutable option singletons used by all immediate (non-snapshot)
 // reads and writes. They hold only configuration, are safe to share across
@@ -18,7 +21,7 @@ var (
 )
 
 // Txn is a consistent read view over a rocketdb database. It replaces the
-// badger read-only transaction: a Txn pins a snapshot and binds it into a
+// A Txn pins a RocketDB snapshot and binds it into a
 // ReadOptions, so every Get/iterator created from it observes the exact same
 // state for the Txn's whole lifetime.
 //
@@ -70,9 +73,7 @@ func GetCF(db *rocketdb.DB, cf string, key []byte) (val []byte, err error) {
 		return nil, err
 	}
 	if val == nil {
-		// rocketdb returns (nil, nil) on a miss; translate to the error the
-		// upper layers (and tests) still expect.
-		return nil, badger.ErrKeyNotFound
+		return nil, ErrKeyNotFound
 	}
 	return val, nil
 }
@@ -84,7 +85,7 @@ func GetCFFromTxn(txn *Txn, cf string, key []byte) (val []byte, err error) {
 		return nil, err
 	}
 	if val == nil {
-		return nil, badger.ErrKeyNotFound
+		return nil, ErrKeyNotFound
 	}
 	return val, nil
 }
@@ -99,7 +100,7 @@ func GetMeta(engine *rocketdb.DB, key []byte, msg proto.Message) error {
 		return err
 	}
 	if val == nil {
-		return badger.ErrKeyNotFound
+		return ErrKeyNotFound
 	}
 	return proto.Unmarshal(val, msg)
 }
@@ -110,7 +111,7 @@ func GetMetaFromTxn(txn *Txn, key []byte, msg proto.Message) error {
 		return err
 	}
 	if val == nil {
-		return badger.ErrKeyNotFound
+		return ErrKeyNotFound
 	}
 	return proto.Unmarshal(val, msg)
 }

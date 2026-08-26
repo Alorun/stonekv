@@ -386,7 +386,7 @@ func (c *Cluster) Scan(start, end []byte) [][]byte {
 			values = append(values, value)
 		}
 		iter.Close()
-		// Release the snapshot/ReadOptions held by the GetSnap txn. With badger
+		// Release the snapshot/ReadOptions held by the GetSnap txn. With db
 		// this was reclaimed by GC, but rocketdb's C resources must be freed
 		// explicitly or they pile up and crash the engine on close/seek.
 		reader.Close()

@@ -1,7 +1,6 @@
 package meta
 
 import (
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
 	"github.com/Alorun/stonekv/kv/util/rocketdb"
 	"github.com/Alorun/stonekv/proto/pkg/eraftpb"
@@ -50,10 +49,10 @@ const (
 
 func InitRaftLocalState(raftEngine *rocketdb.DB, region *metapb.Region) (*rspb.RaftLocalState, error) {
 	raftState, err := GetRaftLocalState(raftEngine, region.Id)
-	if err != nil && err != badger.ErrKeyNotFound {
+	if err != nil && err != engine_util.ErrKeyNotFound {
 		return nil, err
 	}
-	if err == badger.ErrKeyNotFound {
+	if err == engine_util.ErrKeyNotFound {
 		raftState = new(rspb.RaftLocalState)
 		raftState.HardState = new(eraftpb.HardState)
 		if len(region.Peers) > 0 {
@@ -73,10 +72,10 @@ func InitRaftLocalState(raftEngine *rocketdb.DB, region *metapb.Region) (*rspb.R
 
 func InitApplyState(kvEngine *rocketdb.DB, region *metapb.Region) (*rspb.RaftApplyState, error) {
 	applyState, err := GetApplyState(kvEngine, region.Id)
-	if err != nil && err != badger.ErrKeyNotFound {
+	if err != nil && err != engine_util.ErrKeyNotFound {
 		return nil, err
 	}
-	if err == badger.ErrKeyNotFound {
+	if err == engine_util.ErrKeyNotFound {
 		applyState = new(rspb.RaftApplyState)
 		applyState.TruncatedState = new(rspb.RaftTruncatedState)
 		if len(region.Peers) > 0 {

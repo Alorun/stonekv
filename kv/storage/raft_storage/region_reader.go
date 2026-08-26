@@ -1,7 +1,6 @@
 package raft_storage
 
 import (
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/raftstore/util"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
 	"github.com/Alorun/stonekv/proto/pkg/metapb"
@@ -24,7 +23,7 @@ func (r *RegionReader) GetCF(cf string, key []byte) ([]byte, error) {
 		return nil, err
 	}
 	val, err := engine_util.GetCFFromTxn(r.txn, cf, key)
-	if err == badger.ErrKeyNotFound {
+	if err == engine_util.ErrKeyNotFound {
 		return nil, nil
 	}
 	return val, err
@@ -41,11 +40,11 @@ func (r *RegionReader) Close() {
 // RegionIterator wraps a db iterator and only allow it to iterate in the region. It behaves as if underlying
 // db only contains one region.
 type RegionIterator struct {
-	iter   *engine_util.BadgerIterator
+	iter   *engine_util.CFIterator
 	region *metapb.Region
 }
 
-func NewRegionIterator(iter *engine_util.BadgerIterator, region *metapb.Region) *RegionIterator {
+func NewRegionIterator(iter *engine_util.CFIterator, region *metapb.Region) *RegionIterator {
 	return &RegionIterator{
 		iter:   iter,
 		region: region,

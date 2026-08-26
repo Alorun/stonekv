@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/config"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
 	"github.com/Alorun/stonekv/log"
@@ -116,7 +115,7 @@ func MustGetCfNone(engine *engine_util.Engines, cf string, key []byte) {
 	var err error
 	for i := 0; i < 300; i++ {
 		val, err = engine_util.GetCF(engine.Kv, cf, key)
-		if err == badger.ErrKeyNotFound {
+		if err == engine_util.ErrKeyNotFound {
 			return
 		}
 		SleepMS(20)

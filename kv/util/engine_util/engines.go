@@ -63,8 +63,8 @@ func (en *Engines) Destroy() error {
 }
 
 // CreateDB creates a new RocketDB on disk at path.
-// The `raft` flag is kept for signature compatibility; rocketdb does not need
-// the badger-specific value-threshold tuning the raft engine used.
+// The `raft` flag is kept for call-site compatibility; RocketDB currently uses
+// the same options for both engines.
 func CreateDB(path string, raft bool) *rocketdb.DB {
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		log.Fatal(err)

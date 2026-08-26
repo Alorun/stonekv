@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Connor1996/badger/y"
 	"github.com/golang/protobuf/proto"
 	"github.com/Alorun/stonekv/kv/raftstore/meta"
 	"github.com/Alorun/stonekv/kv/raftstore/runner"
@@ -43,7 +42,7 @@ type PeerStorage struct {
 	regionSched chan<- worker.Task
 	// generate snapshot tried count
 	snapTriedCnt int
-	// Engine include two badger instance: Raft and Kv
+	// Engine include two db instance: Raft and Kv
 	Engines *engine_util.Engines
 	// Tag used for logging
 	Tag string
@@ -77,9 +76,11 @@ func NewPeerStorage(engines *engine_util.Engines, region *metapb.Region, regionS
 func (ps *PeerStorage) InitialState() (eraftpb.HardState, eraftpb.ConfState, error) {
 	raftState := ps.raftState
 	if raft.IsEmptyHardState(*raftState.HardState) {
-		y.AssertTruef(!ps.isInitialized(),
-			"peer for region %s is initialized but local state %+v has empty hard state",
-			ps.region, ps.raftState)
+		if ps.isInitialized() {
+			panic(fmt.Sprintf(
+				"peer for region %s is initialized but local state %+v has empty hard state",
+				ps.region, ps.raftState))
+		}
 		return eraftpb.HardState{}, eraftpb.ConfState{}, nil
 	}
 	return *raftState.HardState, util.ConfStateFromRegion(ps.region), nil
