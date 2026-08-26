@@ -71,6 +71,7 @@ func main() {
 		grpc.MaxRecvMsgSize(10*1024*1024),
 	)
 	stonekvpb.RegisterStoneKvServer(grpcServer, server)
+	stonekvpb.RegisterTinyKvCompatibilityServer(grpcServer, server)
 	listenAddr := conf.StoreAddr[strings.IndexByte(conf.StoreAddr, ':'):]
 	l, err := net.Listen("tcp", listenAddr)
 	if err != nil {

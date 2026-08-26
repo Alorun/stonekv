@@ -11,7 +11,7 @@ import (
 	"github.com/pingcap/errors"
 )
 
-// Handle will resolve t's storeID into the address of the TinyKV node which should handle t. t's callback is then
+// Handle will resolve t's storeID into the address of the KV node which should handle t. t's callback is then
 // called with that address.
 func (r *resolverRunner) Handle(t worker.Task) {
 	data := t.(*resolveAddrTask)

@@ -347,8 +347,8 @@ func (m *MockSchedulerClient) handleHeartbeatConfVersion(region *metapb.Region) 
 	searchRegionPeerLen := len(searchRegion.GetPeers())
 
 	if region.RegionEpoch.ConfVer > searchRegion.RegionEpoch.ConfVer {
-		// If ConfVer changed, TinyKV has added/removed one peer already.
-		// So scheduler and TinyKV can't have same peer count and can only have
+		// If ConfVer changed, KV has added/removed one peer already.
+		// So scheduler and KV can't have same peer count and can only have
 		// only one different peer.
 		if searchRegionPeerLen > regionPeerLen {
 			if searchRegionPeerLen-regionPeerLen != 1 {
@@ -401,7 +401,7 @@ func (m *MockSchedulerClient) tryFinished(op *Operator, region *metapb.Region, l
 					return false
 				}
 			}
-			// TinyKV rejects AddNode.
+			// KV rejects AddNode.
 			return false
 		} else {
 			_, found := m.pendingPeers[add.peer.GetId()]

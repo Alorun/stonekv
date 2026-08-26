@@ -6,8 +6,8 @@ import (
 	"github.com/Alorun/stonekv/kv/transaction/mvcc"
 )
 
-// Latching provides atomicity of TinyKV commands. This should not be confused with SQL transactions which provide atomicity
-// for multiple TinyKV commands. For example, consider two commit commands, these write to multiple keys/CFs so if they race,
+// Latching provides atomicity of KV commands. This should not be confused with SQL transactions which provide atomicity
+// for multiple KV commands. For example, consider two commit commands, these write to multiple keys/CFs so if they race,
 // then it is possible for inconsistent data to be written. By latching the keys each command might write, we ensure that the
 // two commands will not race to write the same keys.
 //

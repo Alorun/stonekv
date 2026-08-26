@@ -22,7 +22,7 @@ func openTestDB(t *testing.T) (*DB, func()) {
 	}
 }
 
-// TestTwoIndependentDBs mirrors tinykv's need for two separate engines
+// TestTwoIndependentDBs mirrors kv's need for two separate engines
 // (Kv and Raft): writes to one must not be visible in the other.
 func TestTwoIndependentDBs(t *testing.T) {
 	kv, closeKv := openTestDB(t)
