@@ -1,6 +1,6 @@
-# 开发过程问题记录(Project 3)
+# 开发过程问题记录
 
-记录 TinyKV Project 3(multi-raft)开发中遇到的 bug:原因、现象、涉及模块、解决方法。
+记录 TinyKV multi-raft开发中遇到的 bug:原因、现象、涉及模块、解决方法。
 按发现顺序排列。
 
 ---
@@ -144,5 +144,44 @@ func (r *Raft) startElection() {
   逻辑错误**,且对机器负载敏感(沙箱越慢越容易触发)。多跑几次通常能过。
 - **可选缓解(非必须)**:peer 刚当选 leader 时主动补一次 `HeartbeatScheduler`,
   缩短新 leader 上报前的空窗;但对"5 秒内根本没有稳定 leader"这种情况帮助有限。
+
+---
+
+# 开发过程问题记录(Project 4)
+
+记录 TinyKV Project 4(事务 / MVCC / Percolator 2PC)开发中的 bug 与易错点。
+
+---
+
+## Bug 7:`KvCommit` 把"缺失 prewrite"误判为可重试错误
+
+- **涉及**:`kv/server/server.go` → `KvCommit`
+- **现象**:`TestCommitMissingPrewrite4B` 失败——提交一个从没 prewrite 过的 key
+  (无锁、无 write 记录),期望 `resp.Error == nil`(no-op 成功),实际返回
+  `Retryable: "lock not found..."`。
+- **原因**:锁不在时的兜底逻辑写成"只要没有非 Rollback 的 write 记录就返回 Retryable",
+  把 `lock==nil && write==nil`(prewrite 丢失)和"锁被别的事务占着"两种情况混为一谈。
+- **解决**:锁不是本事务时拆成明确分支——write 是 Rollback→报错;write 是 Put/Delete→
+  幂等成功;`lock==nil && write==nil`→**no-op 成功**;只有"锁属于别的事务"才 Retryable。
+
+---
+
+## 易错点 1:`KvScan` 不能用 `Lock.IsLockedFor`
+
+- **涉及**:`kv/server/server.go` → `KvScan`
+- **现象/原因**:`IsLockedFor` 内部用反射往 `resp.Error` 字段写 KeyError,而
+  `ScanResponse` 没有 `Error` 字段(只有 `pairs`),直接调会 panic。
+- **解决**:KvScan 里手动判锁(`lock != nil && lock.Ts <= req.Version`),把错误塞进对应
+  `KvPair.Error`,且**单 key 被锁不中断整体扫描**(scan 逐 key 容错,其它命令则整体中止)。
+
+---
+
+## 易错点 2:`CheckTxnStatus`/`BatchRollback` 必须先查 `CurrentWrite` 再查 `GetLock`
+
+- **涉及**:`kv/server/server.go` → `KvCheckTxnStatus`、`rollbackKey`
+- **现象/原因**:`TestCheckTxnStatusRolledBack4C` 同时放了本事务的 Rollback write **和**
+  一把别的事务的锁。若先查锁,会被别人的锁误导而做出错误动作。
+- **解决**:先用 `CurrentWrite` 拿本事务最终状态(已提交/已回滚直接返回),再看锁;
+  且只有 `lock.Ts == txn.StartTS`(锁确属本事务)才删值删锁。
 
 ---

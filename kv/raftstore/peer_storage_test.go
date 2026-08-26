@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/raftstore/meta"
 	"github.com/Alorun/stonekv/kv/raftstore/util"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
@@ -102,44 +101,36 @@ func getMetaKeyCount(t *testing.T, peerStore *PeerStorage) int {
 	count := 0
 	metaStart := meta.RegionMetaPrefixKey(regionID)
 	metaEnd := meta.RegionMetaPrefixKey(regionID + 1)
-	err := peerStore.Engines.Kv.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		for it.Seek(metaStart); it.Valid(); it.Next() {
-			if bytes.Compare(it.Item().Key(), metaEnd) >= 0 {
-				break
-			}
-			count++
+	kvTxn := engine_util.NewTxn(peerStore.Engines.Kv)
+	defer kvTxn.Discard()
+	it := kvTxn.NewRawIterator()
+	for it.Seek(metaStart); it.Valid(); it.Next() {
+		if bytes.Compare(it.Key(), metaEnd) >= 0 {
+			break
 		}
-		return nil
-	})
-	require.Nil(t, err)
+		count++
+	}
+	it.Close()
 	raftStart := meta.RegionRaftPrefixKey(regionID)
 	raftEnd := meta.RegionRaftPrefixKey(regionID + 1)
-	err = peerStore.Engines.Kv.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		for it.Seek(metaStart); it.Valid(); it.Next() {
-			if bytes.Compare(it.Item().Key(), metaEnd) >= 0 {
-				break
-			}
-			count++
+	it = kvTxn.NewRawIterator()
+	for it.Seek(metaStart); it.Valid(); it.Next() {
+		if bytes.Compare(it.Key(), metaEnd) >= 0 {
+			break
 		}
-		return nil
-	})
-	require.Nil(t, err)
-	err = peerStore.Engines.Raft.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		for it.Seek(raftStart); it.Valid(); it.Next() {
-			if bytes.Compare(it.Item().Key(), raftEnd) >= 0 {
-				break
-			}
-			count++
+		count++
+	}
+	it.Close()
+	raftTxn := engine_util.NewTxn(peerStore.Engines.Raft)
+	defer raftTxn.Discard()
+	it = raftTxn.NewRawIterator()
+	for it.Seek(raftStart); it.Valid(); it.Next() {
+		if bytes.Compare(it.Key(), raftEnd) >= 0 {
+			break
 		}
-		return nil
-	})
-	require.Nil(t, err)
+		count++
+	}
+	it.Close()
 	return count
 }
 

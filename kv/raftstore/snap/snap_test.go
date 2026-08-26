@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/Connor1996/badger"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/kv/util/rocketdb"
 	"github.com/Alorun/stonekv/proto/pkg/metapb"
 	rspb "github.com/Alorun/stonekv/proto/pkg/raft_serverpb"
 	"github.com/pingcap/errors"
@@ -37,16 +37,11 @@ func (d *dummyDeleter) DeleteSnapshot(key SnapKey, snapshot Snapshot, checkEntry
 	return true
 }
 
-func openDB(t *testing.T, dir string) *badger.DB {
-	opts := badger.DefaultOptions
-	opts.Dir = dir
-	opts.ValueDir = dir
-	db, err := badger.Open(opts)
-	require.Nil(t, err)
-	return db
+func openDB(t *testing.T, dir string) *rocketdb.DB {
+	return engine_util.CreateDB(dir, false)
 }
 
-func fillDBData(t *testing.T, db *badger.DB) {
+func fillDBData(t *testing.T, db *rocketdb.DB) {
 	// write some data for multiple cfs.
 	wb := new(engine_util.WriteBatch)
 	value := make([]byte, 32)
@@ -57,23 +52,20 @@ func fillDBData(t *testing.T, db *badger.DB) {
 	require.Nil(t, err)
 }
 
-func getKVCount(t *testing.T, db *badger.DB) int {
+func getKVCount(t *testing.T, db *rocketdb.DB) int {
 	count := 0
-	err := db.View(func(txn *badger.Txn) error {
-		for _, cf := range engine_util.CFs {
-			it := engine_util.NewCFIterator(cf, txn)
-			defer it.Close()
-			for it.Seek(regionTestBegin); it.Valid(); it.Next() {
-				if bytes.Compare(it.Item().Key(), regionTestEnd) >= 0 {
-					break
-				}
-				count++
+	txn := engine_util.NewTxn(db)
+	defer txn.Discard()
+	for _, cf := range engine_util.CFs {
+		it := engine_util.NewCFIterator(cf, txn)
+		for it.Seek(regionTestBegin); it.Valid(); it.Next() {
+			if bytes.Compare(it.Item().Key(), regionTestEnd) >= 0 {
+				break
 			}
+			count++
 		}
-		return nil
-	})
-
-	assert.Nil(t, err)
+		it.Close()
+	}
 	return count
 }
 
@@ -92,7 +84,7 @@ func genTestRegion(regionID, storeID, peerID uint64) *metapb.Region {
 	}
 }
 
-func assertEqDB(t *testing.T, expected, actual *badger.DB) {
+func assertEqDB(t *testing.T, expected, actual *rocketdb.DB) {
 	for _, cf := range engine_util.CFs {
 		expectedVal := getDBValue(t, expected, cf, snapTestKey)
 		actualVal := getDBValue(t, actual, cf, snapTestKey)
@@ -100,7 +92,7 @@ func assertEqDB(t *testing.T, expected, actual *badger.DB) {
 	}
 }
 
-func getDBValue(t *testing.T, db *badger.DB, cf string, key []byte) (val []byte) {
+func getDBValue(t *testing.T, db *rocketdb.DB, cf string, key []byte) (val []byte) {
 	val, err := engine_util.GetCF(db, cf, key)
 	require.Nil(t, err, string(key))
 	return val
@@ -166,7 +158,7 @@ func doTestSnapFile(t *testing.T, dbHasData bool) {
 	snapData := new(rspb.RaftSnapshotData)
 	snapData.Region = region
 	stat := new(SnapStatistics)
-	assert.Nil(t, s1.Build(db.NewTransaction(false), region, snapData, stat, deleter))
+	assert.Nil(t, s1.Build(engine_util.NewTxn(db), region, snapData, stat, deleter))
 
 	// Ensure that this snapshot file does exist after being built.
 	assert.True(t, s1.Exists())

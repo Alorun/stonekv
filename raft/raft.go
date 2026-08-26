@@ -681,9 +681,14 @@ func (r *Raft) handleAppendResponse(m pb.Message) {
 
 	if m.Reject {
 		// Quick rewind
-		if m.Index + 1 < pr.Next {
-			pr.Next = m.Index + 1
+		next := pr.Next - 1
+		if m.Index + 1 < next {
+			next = m.Index + 1
 		}
+		if next < 1 {
+			next = 1
+		}
+		pr.Next = next
 		r.sendAppend(m.From)
 		return
 	}

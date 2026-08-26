@@ -146,10 +146,11 @@ func (l *RaftLog) unstableEntries() []pb.Entry {
 	if l.stabled + 1 < off {
 		return l.entries
 	}
-	if l.stabled >= l.entries[len(l.entries) - 1].Index {
-		return nil
+	hint := l.stabled + 1 - off
+	if hint > uint64(len(l.entries)) {
+		hint = uint64(len(l.entries))
 	}
-	return l.entries[l.stabled + 1 - off:]
+	return l.entries[hint:]
 }
 
 // nextEnts returns all the committed but not applied entries

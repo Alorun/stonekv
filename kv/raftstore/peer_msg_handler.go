@@ -366,19 +366,24 @@ func (d *peerMsgHandler) processConfChange(ent *eraftpb.Entry, kvWB *engine_util
 	}
 
 	peer := msg.AdminRequest.ChangePeer.Peer
+	newRegion := new(metapb.Region)
+	if err := util.CloneMsg(region, newRegion); err != nil {
+		panic(err)
+	}
 
 	switch cc.ChangeType {
 	case eraftpb.ConfChangeType_AddNode:
-		if util.FindPeer(region, peer.StoreId) == nil {
-			region.Peers = append(region.Peers, peer)
-			region.RegionEpoch.ConfVer++;
-			meta.WriteRegionState(kvWB, region, rspb.PeerState_Normal)
+		if util.FindPeer(newRegion, peer.StoreId) == nil {
+			newRegion.Peers = append(newRegion.Peers, peer)
+			newRegion.RegionEpoch.ConfVer++;
+			meta.WriteRegionState(kvWB, newRegion, rspb.PeerState_Normal)
 
 			storeMeta := d.ctx.storeMeta
 			storeMeta.Lock()
-			storeMeta.regions[region.Id] = region
+			storeMeta.regions[newRegion.Id] = newRegion
 			storeMeta.Unlock()
 
+			d.SetRegion(newRegion)
 			d.insertPeerCache(peer)
 		}
 	case eraftpb.ConfChangeType_RemoveNode:
@@ -386,16 +391,17 @@ func (d *peerMsgHandler) processConfChange(ent *eraftpb.Entry, kvWB *engine_util
 			d.destroyPeer()
 			return kvWB
 		}
-		if util.FindPeer(region, peer.StoreId) != nil {
-			util.RemovePeer(region, peer.StoreId)
-			region.RegionEpoch.ConfVer++
-			meta.WriteRegionState(kvWB, region, rspb.PeerState_Normal)
+		if util.FindPeer(newRegion, peer.StoreId) != nil {
+			util.RemovePeer(newRegion, peer.StoreId)
+			newRegion.RegionEpoch.ConfVer++
+			meta.WriteRegionState(kvWB, newRegion, rspb.PeerState_Normal)
 
 			storeMeta := d.ctx.storeMeta
 			storeMeta.Lock()
-			storeMeta.regions[region.Id] = region
+			storeMeta.regions[newRegion.Id] = newRegion
 			storeMeta.Unlock()
 
+			d.SetRegion(newRegion)
 			d.removePeerCache(peer.Id)
 		}
 	}
@@ -406,7 +412,7 @@ func (d *peerMsgHandler) processConfChange(ent *eraftpb.Entry, kvWB *engine_util
 		Header: 		&raft_cmdpb.RaftResponseHeader{},
 		AdminResponse: 	&raft_cmdpb.AdminResponse{
 			CmdType: 	raft_cmdpb.AdminCmdType_ChangePeer,
-			ChangePeer: &raft_cmdpb.ChangePeerResponse{Region: region},
+			ChangePeer: &raft_cmdpb.ChangePeerResponse{Region: newRegion},
 		},
 	}, nil)
 
@@ -511,14 +517,22 @@ func(d *peerMsgHandler) processSplit(ent* eraftpb.Entry, msg *raft_cmdpb.RaftCmd
 		Peers: 			newPeers,
 	}
 
-	region.EndKey = split.SplitKey
-	region.RegionEpoch.Version++
+	newParent := new(metapb.Region)
+	if err := util.CloneMsg(region, newParent); err != nil {
+		panic(err)
+	}
+	newParent.EndKey = split.SplitKey
+	newParent.RegionEpoch.Version++
 
-	meta.WriteRegionState(kvWB, region, rspb.PeerState_Normal)
+	meta.WriteRegionState(kvWB, newParent, rspb.PeerState_Normal)
 	meta.WriteRegionState(kvWB, newRegion, rspb.PeerState_Normal)
+
+	d.peerStorage.SetRegion(newParent)
 
 	storeMeta := d.ctx.storeMeta
 	storeMeta.Lock()
+
+	storeMeta.regions[newParent.Id] = newParent
 	storeMeta.regions[newRegion.Id] = newRegion
 	storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
 	storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: newRegion})
@@ -535,7 +549,7 @@ func(d *peerMsgHandler) processSplit(ent* eraftpb.Entry, msg *raft_cmdpb.RaftCmd
 		Header: 		&raft_cmdpb.RaftResponseHeader{},
 		AdminResponse: 	&raft_cmdpb.AdminResponse{
 			CmdType: 	raft_cmdpb.AdminCmdType_Split,
-			Split: 		&raft_cmdpb.SplitResponse{Regions: []*metapb.Region{region, newRegion}},
+			Split: 		&raft_cmdpb.SplitResponse{Regions: []*metapb.Region{newParent, newRegion}},
 		},
 	}, nil)
 

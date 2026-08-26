@@ -13,6 +13,7 @@ import (
 	"github.com/Alorun/stonekv/kv/raftstore/util"
 	"github.com/Alorun/stonekv/kv/util/codec"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
+	"github.com/Alorun/stonekv/kv/util/rocketdb"
 	"github.com/Alorun/stonekv/kv/util/worker"
 	"github.com/Alorun/stonekv/proto/pkg/eraftpb"
 	"github.com/Alorun/stonekv/proto/pkg/metapb"
@@ -36,22 +37,17 @@ func copySnapshot(to, from snap.Snapshot) error {
 	return nil
 }
 
-func newEnginesWithKVDb(t *testing.T, kv *badger.DB) *engine_util.Engines {
+func newEnginesWithKVDb(t *testing.T, kv *rocketdb.DB) *engine_util.Engines {
 	engines := new(engine_util.Engines)
 	engines.Kv = kv
 	var err error
 	engines.RaftPath, err = ioutil.TempDir("", "stonekv_raft")
 	require.Nil(t, err)
-	raftOpts := badger.DefaultOptions
-	raftOpts.Dir = engines.RaftPath
-	raftOpts.ValueDir = engines.RaftPath
-	raftOpts.ValueThreshold = 256
-	engines.Raft, err = badger.Open(raftOpts)
-	require.Nil(t, err)
+	engines.Raft = engine_util.CreateDB(engines.RaftPath, true)
 	return engines
 }
 
-func getTestDBForRegions(t *testing.T, path string, regions []uint64) *badger.DB {
+func getTestDBForRegions(t *testing.T, path string, regions []uint64) *rocketdb.DB {
 	db := openDB(t, path)
 	fillDBData(t, db)
 	for _, regionID := range regions {
@@ -88,16 +84,11 @@ func genTestRegion(regionID, storeID, peerID uint64) *metapb.Region {
 	}
 }
 
-func openDB(t *testing.T, dir string) *badger.DB {
-	opts := badger.DefaultOptions
-	opts.Dir = dir
-	opts.ValueDir = dir
-	db, err := badger.Open(opts)
-	require.Nil(t, err)
-	return db
+func openDB(t *testing.T, dir string) *rocketdb.DB {
+	return engine_util.CreateDB(dir, false)
 }
 
-func fillDBData(t *testing.T, db *badger.DB) {
+func fillDBData(t *testing.T, db *rocketdb.DB) {
 	// write some data for multiple cfs.
 	wb := new(engine_util.WriteBatch)
 	value := make([]byte, 32)
@@ -189,26 +180,21 @@ func TestGcRaftLog(t *testing.T) {
 	}
 }
 
-func raftLogMustNotExist(t *testing.T, db *badger.DB, regionId, startIdx, endIdx uint64) {
+func raftLogMustNotExist(t *testing.T, db *rocketdb.DB, regionId, startIdx, endIdx uint64) {
 	for i := startIdx; i < endIdx; i++ {
 		k := meta.RaftLogKey(regionId, i)
-		db.View(func(txn *badger.Txn) error {
-			_, err := txn.Get(k)
-			assert.Equal(t, badger.ErrKeyNotFound, err)
-			return nil
-		})
+		err := engine_util.GetMeta(db, k, &eraftpb.Entry{})
+		assert.Equal(t, badger.ErrKeyNotFound, err)
 	}
 }
 
-func raftLogMustExist(t *testing.T, db *badger.DB, regionId, startIdx, endIdx uint64) {
+func raftLogMustExist(t *testing.T, db *rocketdb.DB, regionId, startIdx, endIdx uint64) {
 	for i := startIdx; i < endIdx; i++ {
 		k := meta.RaftLogKey(regionId, i)
-		db.View(func(txn *badger.Txn) error {
-			item, err := txn.Get(k)
-			assert.Nil(t, err)
-			assert.NotNil(t, item)
-			return nil
-		})
+		entry := &eraftpb.Entry{}
+		err := engine_util.GetMeta(db, k, entry)
+		assert.Nil(t, err)
+		assert.NotNil(t, entry)
 	}
 }
 
