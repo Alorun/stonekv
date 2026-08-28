@@ -20,27 +20,28 @@ import (
 )
 
 // a client runs the function f and then signals it is done
-func runClient(t *testing.T, me int, ca chan bool, fn func(me int, t *testing.T)) {
+func runClient(me int, ca chan bool, fn func(me int)) {
 	ok := false
 	defer func() { ca <- ok }()
-	fn(me, t)
+	fn(me)
 	ok = true
 }
 
 // spawn ncli clients and wait until they are all done
-func SpawnClientsAndWait(t *testing.T, ch chan bool, ncli int, fn func(me int, t *testing.T)) {
-	defer func() { ch <- true }()
+func SpawnClientsAndWait(ch chan bool, ncli int, fn func(me int)) {
+	allOK := true
+	defer func() { ch <- allOK }()
 	ca := make([]chan bool, ncli)
 	for cli := 0; cli < ncli; cli++ {
 		ca[cli] = make(chan bool)
-		go runClient(t, cli, ca[cli], fn)
+		go runClient(cli, ca[cli], fn)
 	}
 	// log.Printf("SpawnClientsAndWait: waiting for clients")
 	for cli := 0; cli < ncli; cli++ {
 		ok := <-ca[cli]
 		// log.Infof("SpawnClientsAndWait: client %d is done\n", cli)
-		if ok == false {
-			t.Fatalf("failure")
+		if !ok {
+			allOK = false
 		}
 	}
 
@@ -196,7 +197,7 @@ func GenericTest(t *testing.T, part string, nclients int, unreliable bool, crash
 		// log.Printf("Iteration %v\n", i)
 		atomic.StoreInt32(&done_clients, 0)
 		atomic.StoreInt32(&done_partitioner, 0)
-		go SpawnClientsAndWait(t, ch_clients, nclients, func(cli int, t *testing.T) {
+		go SpawnClientsAndWait(ch_clients, nclients, func(cli int) {
 			j := 0
 			defer func() {
 				clnts[cli] <- j
@@ -250,7 +251,9 @@ func GenericTest(t *testing.T, part string, nclients int, unreliable bool, crash
 		}
 
 		// log.Printf("wait for clients\n")
-		<-ch_clients
+		if ok := <-ch_clients; !ok {
+			t.Fatal("client failed")
+		}
 
 		if crash {
 			log.Warnf("shutdown servers\n")

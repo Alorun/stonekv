@@ -128,8 +128,14 @@ func (server *Server) KvPrewrite(_ context.Context, req *kvrpcpb.PrewriteRequest
 			return nil, err
 		}
 
+		// A retried prewrite may observe the same transaction already
+		// committed. Treat it as completed instead of reporting a conflict.
+		if write != nil && write.StartTS == req.StartVersion && write.Kind != mvcc.WriteKindRollback {
+			continue
+		}
+
 		// Check for write conflicts.
-		if write != nil && commitTs > req.StartVersion {
+		if write != nil && commitTs >= req.StartVersion {
 			keyErrors = append(keyErrors, &kvrpcpb.KeyError{
 				Conflict: &kvrpcpb.WriteConflict{
 					StartTs:   	req.StartVersion,
@@ -149,6 +155,10 @@ func (server *Server) KvPrewrite(_ context.Context, req *kvrpcpb.PrewriteRequest
 				return resp, nil
 			}
 			return nil, err
+		}
+		if lock != nil && lock.Ts == req.StartVersion {
+			// The first attempt already installed this transaction's lock.
+			continue
 		}
 		if lock != nil {
 			keyErrors = append(keyErrors, &kvrpcpb.KeyError{
@@ -456,7 +466,7 @@ func rollbackKey(key []byte, txn *mvcc.MvccTxn) (*kvrpcpb.KeyError, error) {
 func (server *Server) KvBatchRollback(_ context.Context, req *kvrpcpb.BatchRollbackRequest) (*kvrpcpb.BatchRollbackResponse, error) {
 	resp := &kvrpcpb.BatchRollbackResponse{}
 
-	server.Latches.AcquireLatches(req.Keys)
+	server.Latches.WaitForLatches(req.Keys)
 	defer server.Latches.ReleaseLatches(req.Keys)
 
 	reader, err := server.storage.Reader(req.Context)

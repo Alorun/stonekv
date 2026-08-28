@@ -53,13 +53,27 @@ func (scan *Scanner) Next() ([]byte, []byte, error) {
 		return scan.Next()
 	}
 
-	writeValue, err := item.Value()
-	if err != nil {
-		return nil, nil, err
-	}
-	write, err := ParseWrite(writeValue)
-	if err != nil {
-		return nil, nil, err
+	var write *Write
+	for {
+		writeValue, err := item.Value()
+		if err != nil {
+			return nil, nil, err
+		}
+		write, err = ParseWrite(writeValue)
+		if err != nil {
+			return nil, nil, err
+		}
+		if write.Kind != WriteKindRollback {
+			break
+		}
+
+		// Rollback records do not change the visible value. Continue with the
+		// next older write for the same user key.
+		scan.iter.Next()
+		if !scan.iter.Valid() || !bytes.Equal(DecodeUserKey(scan.iter.Item().Key()), userKey) {
+			return scan.Next()
+		}
+		item = scan.iter.Item()
 	}
 
 	// The loop continues until the next new key.

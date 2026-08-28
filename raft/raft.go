@@ -761,19 +761,25 @@ func (r *Raft) handlePropose(m pb.Message) error {
 	lastIndex := r.RaftLog.LastIndex()
 	ents := make([]pb.Entry, len(m.Entries))
 	for i, e := range m.Entries {
+		entryType := e.EntryType
+		data := e.Data
 		// Prevent two unapplied confchanges from occurring simultaneously
 		if e.EntryType == pb.EntryType_EntryConfChange {
 			if r.PendingConfIndex > r.RaftLog.applied {
-				continue
+				// Keep the log indexes contiguous, but turn the additional
+				// configuration change into a normal no-op entry.
+				entryType = pb.EntryType_EntryNormal
+				data = nil
+			} else {
+				r.PendingConfIndex = lastIndex + uint64(i) + 1
 			}
-			r.PendingConfIndex = lastIndex + uint64(i) + 1
 		}
 
 		ents[i] = pb.Entry{
-			EntryType: 	e.EntryType,
-			Term: 		r.Term,
-			Index: 		lastIndex + uint64(i) + 1,
-			Data: 		e.Data,
+			EntryType: entryType,
+			Term:      r.Term,
+			Index:     lastIndex + uint64(i) + 1,
+			Data:      data,
 		}
 	}
 	r.RaftLog.append(ents...)

@@ -91,35 +91,34 @@ func (txn *MvccTxn) GetValue(key []byte) ([]byte, error) {
 	iter := txn.Reader.IterCF(engine_util.CfWrite)
 	defer iter.Close()
 
-	// Find the first version whose commitTS <= to startTS
-	iter.Seek(EncodeKey(key, txn.StartTS))
-	if !iter.Valid() {
-		return nil, nil
-	}
-	item := iter.Item()
+	// Find the first version whose commitTS is visible. Rollback records only
+	// describe an aborted transaction and must not hide an older committed value.
+	for iter.Seek(EncodeKey(key, txn.StartTS)); iter.Valid(); iter.Next() {
+		item := iter.Item()
+		if !bytes.Equal(DecodeUserKey(item.Key()), key) {
+			return nil, nil
+		}
 
-	// Perform a bounds check to prevent advancing to the next key if no matching version is found.
-	if !bytes.Equal(DecodeUserKey(iter.Item().Key()), key) {
-		return nil, nil
+		val, err := item.Value()
+		if err != nil {
+			return nil, err
+		}
+		write, err := ParseWrite(val)
+		if err != nil {
+			return nil, err
+		}
+
+		switch write.Kind {
+		case WriteKindRollback:
+			continue
+		case WriteKindDelete:
+			return nil, nil
+		case WriteKindPut:
+			return txn.Reader.GetCF(engine_util.CfDefault, EncodeKey(key, write.StartTS))
+		}
 	}
 
-	// Get the value (sequence Write)
-	val, err := item.Value()
-	if err != nil {
-		return nil, err
-	}
-
-	write, err := ParseWrite(val)
-	if err != nil {
-		return nil, err
-	}
-
-	// The key is deleted.
-	if write.Kind != WriteKindPut {
-		return nil, nil
-	}
-
-	return txn.Reader.GetCF(engine_util.CfDefault, EncodeKey(key, write.StartTS))
+	return nil, nil
 }
 
 // PutValue adds a key/value write to this transaction.
