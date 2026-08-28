@@ -540,6 +540,7 @@ func (server *Server) KvResolveLock(_ context.Context, req *kvrpcpb.ResolveLockR
 		}
 		return nil, err
 	}
+	defer reader.Close()
 
 	txn := mvcc.NewMvccTxn(reader, req.StartVersion)
 
@@ -606,6 +607,7 @@ func (server *Server) Coprocessor(_ context.Context, req *coppb.Request) (*coppb
 		}
 		return nil, err
 	}
+	defer reader.Close()
 	switch req.Tp {
 	case kv.ReqTypeDAG:
 		return server.copHandler.HandleCopDAGRequest(reader, req), nil

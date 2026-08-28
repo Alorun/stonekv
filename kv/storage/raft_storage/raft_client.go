@@ -2,6 +2,7 @@ package raft_storage
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -14,10 +15,12 @@ import (
 )
 
 type raftConn struct {
-	streamMu sync.Mutex
-	stream   stonekvpb.StoneKv_RaftClient
-	ctx      context.Context
-	cancel   context.CancelFunc
+	streamMu   sync.Mutex
+	stream     stonekvpb.StoneKv_RaftClient
+	ctx        context.Context
+	cancel     context.CancelFunc
+	clientConn *grpc.ClientConn
+	stopOnce   sync.Once
 }
 
 func newRaftConn(addr string, cfg *config.Config) (*raftConn, error) {
@@ -35,17 +38,24 @@ func newRaftConn(addr string, cfg *config.Config) (*raftConn, error) {
 	stream, err := stonekvpb.NewStoneKvClient(cc).Raft(ctx)
 	if err != nil {
 		cancel()
+		_ = cc.Close()
 		return nil, err
 	}
 	return &raftConn{
-		stream: stream,
-		ctx:    ctx,
-		cancel: cancel,
+		stream:     stream,
+		ctx:        ctx,
+		cancel:     cancel,
+		clientConn: cc,
 	}, nil
 }
 
 func (c *raftConn) Stop() {
-	c.cancel()
+	c.stopOnce.Do(func() {
+		c.cancel()
+		if c.clientConn != nil {
+			_ = c.clientConn.Close()
+		}
+	})
 }
 
 func (c *raftConn) Send(msg *raft_serverpb.RaftMessage) error {
@@ -57,9 +67,12 @@ func (c *raftConn) Send(msg *raft_serverpb.RaftMessage) error {
 type RaftClient struct {
 	config *config.Config
 	sync.RWMutex
-	conns map[string]*raftConn
-	addrs map[uint64]string
+	conns   map[string]*raftConn
+	addrs   map[uint64]string
+	stopped bool
 }
+
+var errRaftClientStopped = errors.New("raft client stopped")
 
 func newRaftClient(config *config.Config) *RaftClient {
 	return &RaftClient{
@@ -71,6 +84,10 @@ func newRaftClient(config *config.Config) *RaftClient {
 
 func (c *RaftClient) getConn(addr string, regionID uint64) (*raftConn, error) {
 	c.RLock()
+	if c.stopped {
+		c.RUnlock()
+		return nil, errRaftClientStopped
+	}
 	conn, ok := c.conns[addr]
 	if ok {
 		c.RUnlock()
@@ -83,6 +100,10 @@ func (c *RaftClient) getConn(addr string, regionID uint64) (*raftConn, error) {
 	}
 	c.Lock()
 	defer c.Unlock()
+	if c.stopped {
+		newConn.Stop()
+		return nil, errRaftClientStopped
+	}
 	if conn, ok := c.conns[addr]; ok {
 		newConn.Stop()
 		return conn, nil
@@ -122,9 +143,29 @@ func (c *RaftClient) GetAddr(storeID uint64) string {
 func (c *RaftClient) InsertAddr(storeID uint64, addr string) {
 	c.Lock()
 	defer c.Unlock()
+	if c.stopped {
+		return
+	}
 	c.addrs[storeID] = addr
 }
 
 func (c *RaftClient) Flush() {
 	// Not support BufferHint
+}
+
+func (c *RaftClient) Stop() {
+	c.Lock()
+	if c.stopped {
+		c.Unlock()
+		return
+	}
+	c.stopped = true
+	conns := c.conns
+	c.conns = make(map[string]*raftConn)
+	c.addrs = make(map[uint64]string)
+	c.Unlock()
+
+	for _, conn := range conns {
+		conn.Stop()
+	}
 }

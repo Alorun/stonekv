@@ -88,3 +88,25 @@ func TestEngineUtil(t *testing.T) {
 	require.False(t, lockIter.Valid())
 	lockIter.Close()
 }
+
+func TestWriteBatchPreservesEmptyValue(t *testing.T) {
+	db := CreateDB(t.TempDir(), false)
+	defer db.Close()
+
+	key := []byte("empty-value")
+	batch := new(WriteBatch)
+	batch.SetCF(CfDefault, key, nil)
+	require.NoError(t, batch.WriteToDB(db))
+
+	value, err := GetCF(db, CfDefault, key)
+	require.NoError(t, err)
+	require.NotNil(t, value)
+	require.Empty(t, value)
+
+	batch = new(WriteBatch)
+	batch.DeleteCF(CfDefault, key)
+	require.NoError(t, batch.WriteToDB(db))
+
+	_, err = GetCF(db, CfDefault, key)
+	require.ErrorIs(t, err, ErrKeyNotFound)
+}

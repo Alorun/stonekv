@@ -6,9 +6,17 @@ import (
 	"github.com/pingcap/errors"
 )
 
-// writeBatchEntry is one staged mutation. An empty Value means "delete this
-// key".
+type writeBatchOp uint8
+
+const (
+	writeBatchOpPut writeBatchOp = iota
+	writeBatchOpDelete
+)
+
+// writeBatchEntry is one staged mutation. Op distinguishes an empty value
+// from a deletion.
 type writeBatchEntry struct {
+	Op    writeBatchOp
 	Key   []byte
 	Value []byte
 }
@@ -34,6 +42,7 @@ func (wb *WriteBatch) Len() int {
 
 func (wb *WriteBatch) SetCF(cf string, key, val []byte) {
 	wb.entries = append(wb.entries, &writeBatchEntry{
+		Op:    writeBatchOpPut,
 		Key:   KeyWithCF(cf, key),
 		Value: val,
 	})
@@ -42,6 +51,7 @@ func (wb *WriteBatch) SetCF(cf string, key, val []byte) {
 
 func (wb *WriteBatch) DeleteMeta(key []byte) {
 	wb.entries = append(wb.entries, &writeBatchEntry{
+		Op:  writeBatchOpDelete,
 		Key: key,
 	})
 	wb.size += len(key)
@@ -49,6 +59,7 @@ func (wb *WriteBatch) DeleteMeta(key []byte) {
 
 func (wb *WriteBatch) DeleteCF(cf string, key []byte) {
 	wb.entries = append(wb.entries, &writeBatchEntry{
+		Op:  writeBatchOpDelete,
 		Key: KeyWithCF(cf, key),
 	})
 	wb.size += len(key)
@@ -60,6 +71,7 @@ func (wb *WriteBatch) SetMeta(key []byte, msg proto.Message) error {
 		return errors.WithStack(err)
 	}
 	wb.entries = append(wb.entries, &writeBatchEntry{
+		Op:    writeBatchOpPut,
 		Key:   key,
 		Value: val,
 	})
@@ -86,10 +98,11 @@ func (wb *WriteBatch) WriteToDB(db *rocketdb.DB) error {
 	rwb := rocketdb.NewWriteBatch()
 	defer rwb.Close()
 	for _, entry := range wb.entries {
-		if len(entry.Value) == 0 {
-			rwb.Delete(entry.Key)
-		} else {
+		switch entry.Op {
+		case writeBatchOpPut:
 			rwb.Put(entry.Key, entry.Value)
+		case writeBatchOpDelete:
+			rwb.Delete(entry.Key)
 		}
 	}
 	if err := db.Write(defaultWriteOptions, rwb); err != nil {

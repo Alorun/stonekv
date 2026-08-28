@@ -47,17 +47,32 @@ func main() {
 	log.SetLevelByString(conf.LogLevel)
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 	log.Infof("Server started with conf %+v", conf)
-
-	var storage storage.Storage
-	if conf.Raft {
-		storage = raft_storage.NewRaftStorage(conf)
-	} else {
-		storage = standalone_storage.NewStandAloneStorage(conf)
-	}
-	if err := storage.Start(); err != nil {
+	if err := run(conf); err != nil {
 		log.Fatal(err)
 	}
-	server := server.NewServer(storage)
+}
+
+func run(conf *config.Config) (err error) {
+	var store storage.Storage
+	if conf.Raft {
+		store = raft_storage.NewRaftStorage(conf)
+	} else {
+		store = standalone_storage.NewStandAloneStorage(conf)
+	}
+	if err = store.Start(); err != nil {
+		return err
+	}
+	defer func() {
+		if stopErr := store.Stop(); stopErr != nil {
+			if err == nil {
+				err = stopErr
+			} else {
+				log.Errorf("stop storage failed: %v", stopErr)
+			}
+		}
+	}()
+
+	kvServer := server.NewServer(store)
 
 	var alivePolicy = keepalive.EnforcementPolicy{
 		MinTime:             2 * time.Second, // If a client pings more than once every 2 seconds, terminate the connection
@@ -70,20 +85,20 @@ func main() {
 		grpc.InitialConnWindowSize(1<<30),
 		grpc.MaxRecvMsgSize(10*1024*1024),
 	)
-	stonekvpb.RegisterStoneKvServer(grpcServer, server)
-	stonekvpb.RegisterTinyKvCompatibilityServer(grpcServer, server)
+	stonekvpb.RegisterStoneKvServer(grpcServer, kvServer)
+	stonekvpb.RegisterTinyKvCompatibilityServer(grpcServer, kvServer)
 	listenAddr := conf.StoreAddr[strings.IndexByte(conf.StoreAddr, ':'):]
 	l, err := net.Listen("tcp", listenAddr)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	handleSignal(grpcServer)
 
-	err = grpcServer.Serve(l)
-	if err != nil {
-		log.Fatal(err)
+	if err = grpcServer.Serve(l); err != nil {
+		return err
 	}
 	log.Info("Server stopped.")
+	return nil
 }
 
 func handleSignal(grpcServer *grpc.Server) {

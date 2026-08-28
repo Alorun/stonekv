@@ -28,14 +28,17 @@ type RaftStorage struct {
 	engines *engine_util.Engines
 	config  *config.Config
 
-	node          *raftstore.Node
-	snapManager   *snap.SnapManager
-	raftRouter    *raftstore.RaftstoreRouter
-	raftSystem    *raftstore.Raftstore
-	resolveWorker *worker.Worker
-	snapWorker    *worker.Worker
+	node            *raftstore.Node
+	snapManager     *snap.SnapManager
+	raftRouter      *raftstore.RaftstoreRouter
+	raftSystem      *raftstore.Raftstore
+	resolveWorker   *worker.Worker
+	snapWorker      *worker.Worker
+	schedulerClient scheduler_client.Client
+	raftClient      *RaftClient
 
-	wg sync.WaitGroup
+	wg       sync.WaitGroup
+	stopOnce sync.Once
 }
 
 type RegionError struct {
@@ -173,9 +176,15 @@ func (rs *RaftStorage) Snapshot(stream stonekvpb.StoneKv_SnapshotServer) error {
 	return err
 }
 
-func (rs *RaftStorage) Start() error {
+func (rs *RaftStorage) Start() (err error) {
+	defer func() {
+		if err != nil {
+			_ = rs.Stop()
+		}
+	}()
+
 	cfg := rs.config
-	schedulerClient, err := scheduler_client.NewClient(strings.Split(cfg.SchedulerAddr, ","), "")
+	rs.schedulerClient, err = scheduler_client.NewClient(strings.Split(cfg.SchedulerAddr, ","), "")
 	if err != nil {
 		return err
 	}
@@ -183,7 +192,7 @@ func (rs *RaftStorage) Start() error {
 
 	rs.resolveWorker = worker.NewWorker("resolver", &rs.wg)
 	resolveSender := rs.resolveWorker.Sender()
-	resolveRunner := newResolverRunner(schedulerClient)
+	resolveRunner := newResolverRunner(rs.schedulerClient)
 	rs.resolveWorker.Start(resolveRunner)
 
 	rs.snapManager = snap.NewSnapManager(filepath.Join(cfg.DBPath, "snap"))
@@ -192,10 +201,10 @@ func (rs *RaftStorage) Start() error {
 	snapRunner := newSnapRunner(rs.snapManager, rs.config, rs.raftRouter)
 	rs.snapWorker.Start(snapRunner)
 
-	raftClient := newRaftClient(cfg)
-	trans := NewServerTransport(raftClient, snapSender, rs.raftRouter, resolveSender)
+	rs.raftClient = newRaftClient(cfg)
+	trans := NewServerTransport(rs.raftClient, snapSender, rs.raftRouter, resolveSender)
 
-	rs.node = raftstore.NewNode(rs.raftSystem, rs.config, schedulerClient)
+	rs.node = raftstore.NewNode(rs.raftSystem, rs.config, rs.schedulerClient)
 	err = rs.node.Start(context.TODO(), rs.engines, trans, rs.snapManager)
 	if err != nil {
 		return err
@@ -205,11 +214,26 @@ func (rs *RaftStorage) Start() error {
 }
 
 func (rs *RaftStorage) Stop() error {
-	rs.snapWorker.Stop()
-	rs.node.Stop()
-	rs.resolveWorker.Stop()
-	rs.wg.Wait()
-	rs.engines.Raft.Close()
-	rs.engines.Kv.Close()
+	rs.stopOnce.Do(func() {
+		if rs.node != nil {
+			rs.node.Stop()
+		}
+		if rs.snapWorker != nil {
+			rs.snapWorker.Stop()
+		}
+		if rs.resolveWorker != nil {
+			rs.resolveWorker.Stop()
+		}
+		rs.wg.Wait()
+		if rs.raftClient != nil {
+			rs.raftClient.Stop()
+		}
+		if rs.schedulerClient != nil {
+			rs.schedulerClient.Close()
+		}
+		if rs.engines != nil {
+			rs.engines.Close()
+		}
+	})
 	return nil
 }

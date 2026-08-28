@@ -312,6 +312,7 @@ func (c *RaftCluster) processRegionHeartbeat(region *core.RegionInfo) error {
 		}
 	}
 
+	c.prepareChecker.collect(region)
 	c.core.PutRegion(region)
 
 	for id := range affected {
