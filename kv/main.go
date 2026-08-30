@@ -74,9 +74,11 @@ func run(conf *config.Config) (err error) {
 
 	kvServer := server.NewServer(store)
 
+	// If a client pings more than once every 2 seconds, terminate the connection
+	// Allow pings even when there are no active streams
 	var alivePolicy = keepalive.EnforcementPolicy{
-		MinTime:             2 * time.Second, // If a client pings more than once every 2 seconds, terminate the connection
-		PermitWithoutStream: true,            // Allow pings even when there are no active streams
+		MinTime:             2 * time.Second, 
+		PermitWithoutStream: true,            
 	}
 
 	grpcServer := grpc.NewServer(

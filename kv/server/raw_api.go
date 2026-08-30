@@ -8,7 +8,6 @@ import (
 )
 
 // The functions below are Server's Raw API. (implements StoneKvServer).
-// Some helper methods can be found in sever.go in the current directory
 
 // RawGet return the corresponding Get response based on RawGetRequest's CF and Key fields
 func (server *Server) RawGet(_ context.Context, req *kvrpcpb.RawGetRequest) (*kvrpcpb.RawGetResponse, error) {

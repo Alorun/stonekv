@@ -312,6 +312,7 @@ func (c *RaftCluster) processRegionHeartbeat(region *core.RegionInfo) error {
 		}
 	}
 
+	// Reflush cluster region information
 	c.prepareChecker.collect(region)
 	c.core.PutRegion(region)
 
@@ -855,7 +856,6 @@ func (c *RaftCluster) putRegion(region *core.RegionInfo) error {
 
 type prepareChecker struct {
 	reactiveRegions map[uint64]int
-	regionStores    map[uint64]map[uint64]struct{}
 	start           time.Time
 	sum             int
 	isPrepared      bool
@@ -865,7 +865,6 @@ func newPrepareChecker() *prepareChecker {
 	return &prepareChecker{
 		start:           time.Now(),
 		reactiveRegions: make(map[uint64]int),
-		regionStores:    make(map[uint64]map[uint64]struct{}),
 	}
 }
 
@@ -893,25 +892,8 @@ func (checker *prepareChecker) check(c *RaftCluster) bool {
 }
 
 func (checker *prepareChecker) collect(region *core.RegionInfo) {
-	regionID := region.GetID()
-	oldStores, collected := checker.regionStores[regionID]
-	newStores := region.GetStoreIds()
-
-	if !collected {
-		checker.sum++
+	for _, p := range region.GetPeers() {
+		checker.reactiveRegions[p.GetStoreId()]++
 	}
-	for storeID := range oldStores {
-		if _, ok := newStores[storeID]; !ok {
-			checker.reactiveRegions[storeID]--
-			if checker.reactiveRegions[storeID] == 0 {
-				delete(checker.reactiveRegions, storeID)
-			}
-		}
-	}
-	for storeID := range newStores {
-		if _, ok := oldStores[storeID]; !ok {
-			checker.reactiveRegions[storeID]++
-		}
-	}
-	checker.regionStores[regionID] = newStores
+	checker.sum++
 }

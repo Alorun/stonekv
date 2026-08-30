@@ -9,6 +9,7 @@ import (
 
 // It is an implementation of `Storage` for a single-node KV instance.
 // It does not communicate with other nodes and all data is stored locally.
+// No Scheduler, no Region, no Raft
 type StandAloneStorage struct {
 	engines_ engine_util.Engines
 }
@@ -57,7 +58,7 @@ func (r *storageReader) GetCF(cf string, key []byte) ([]byte, error) {
 	if err == engine_util.ErrKeyNotFound {
 		return nil, nil
 	}
-	return val, nil
+	return val, err
 }
 
 func (r *storageReader) IterCF(cf string) engine_util.DBIterator {
