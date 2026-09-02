@@ -16,7 +16,7 @@ type Lock struct {
 	Primary []byte		// Key
 	Ts      uint64  	// startTs
 	Ttl     uint64		// TTL
-	Kind    WriteKind	// Get,Put,Delete
+	Kind    WriteKind	// Put or Delete
 }
 
 type KlPair struct {
@@ -79,6 +79,7 @@ func AllLocksForTxn(txn *MvccTxn) ([]KlPair, error) {
 	var result []KlPair
 	iter := txn.Reader.IterCF(engine_util.CfLock)
 	defer iter.Close()
+	iter.Seek(nil)
 
 	for ; iter.Valid(); iter.Next() {
 		item := iter.Item()

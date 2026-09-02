@@ -230,3 +230,24 @@ func TestTransactionSnapshotReadKeepsHistoricalVersion(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte("bob"), newRead.Value)
 }
+
+func TestTransactionGetDoesNotReturnStaleValueForVisibleLock(t *testing.T) {
+	srv := server.NewServer(storage.NewMemStorage())
+	key := []byte("profile/locked-name")
+
+	require.Empty(t, prewriteBusinessValue(t, srv, key, []byte("alice"), 10).Errors)
+	require.Nil(t, commitBusinessValue(t, srv, key, 10, 20).Error)
+	require.Empty(t, prewriteBusinessValue(t, srv, key, []byte("bob"), 30).Errors)
+
+	historical, err := srv.KvGet(context.Background(), &kvrpcpb.GetRequest{Key: key, Version: 25})
+	require.NoError(t, err)
+	require.Nil(t, historical.Error)
+	require.Equal(t, []byte("alice"), historical.Value)
+
+	blocked, err := srv.KvGet(context.Background(), &kvrpcpb.GetRequest{Key: key, Version: 40})
+	require.NoError(t, err)
+	require.NotNil(t, blocked.Error)
+	require.NotNil(t, blocked.Error.Locked)
+	require.Equal(t, uint64(30), blocked.Error.Locked.LockVersion)
+	require.Empty(t, blocked.Value)
+}

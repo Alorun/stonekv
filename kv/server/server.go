@@ -76,6 +76,7 @@ func (server *Server) KvGet(_ context.Context, req *kvrpcpb.GetRequest) (*kvrpcp
 		resp.Error = &kvrpcpb.KeyError{
 			Locked: lock.Info(req.Key),
 		}
+		return resp, nil
 	}
 
 	value, err := txn.GetValue(req.Key)
@@ -128,8 +129,8 @@ func (server *Server) KvPrewrite(_ context.Context, req *kvrpcpb.PrewriteRequest
 			return nil, err
 		}
 
-		// A retried prewrite may observe the same transaction already
-		// committed. Treat it as completed instead of reporting a conflict.
+		// A retried prewrite may observe the same transaction already committed. 
+		// Treat it as completed instead of reporting a conflict.
 		if write != nil && write.StartTS == req.StartVersion && write.Kind != mvcc.WriteKindRollback {
 			continue
 		}
@@ -528,7 +529,7 @@ func commitKey(key []byte, commitVersion uint64, txn *mvcc.MvccTxn) (*kvrpcpb.Ke
 		return nil, err
 	}
 	if write != nil {
-		if write.Kind != mvcc.WriteKindRollback {
+		if write.Kind == mvcc.WriteKindRollback {
 			return &kvrpcpb.KeyError{ Retryable: "transaction has been rolled back" }, nil
 		}
 		return nil, nil

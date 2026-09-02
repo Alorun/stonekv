@@ -1,6 +1,8 @@
 package raft_storage
 
 import (
+	"bytes"
+
 	"github.com/Alorun/stonekv/kv/raftstore/util"
 	"github.com/Alorun/stonekv/kv/util/engine_util"
 	"github.com/Alorun/stonekv/proto/pkg/metapb"
@@ -56,17 +58,19 @@ func (it *RegionIterator) Item() engine_util.DBItem {
 }
 
 func (it *RegionIterator) Valid() bool {
-	if !it.iter.Valid() || engine_util.ExceedEndKey(it.iter.Item().Key(), it.region.EndKey) {
+	if !it.iter.Valid() {
 		return false
 	}
-	return true
+	key := it.iter.Item().Key()
+	return bytes.Compare(key, it.region.StartKey) >= 0 && !engine_util.ExceedEndKey(key, it.region.EndKey)
 }
 
 func (it *RegionIterator) ValidForPrefix(prefix []byte) bool {
-	if !it.iter.ValidForPrefix(prefix) || engine_util.ExceedEndKey(it.iter.Item().Key(), it.region.EndKey) {
+	if !it.iter.ValidForPrefix(prefix) {
 		return false
 	}
-	return true
+	key := it.iter.Item().Key()
+	return bytes.Compare(key, it.region.StartKey) >= 0 && !engine_util.ExceedEndKey(key, it.region.EndKey)
 }
 
 func (it *RegionIterator) Close() {
@@ -78,12 +82,12 @@ func (it *RegionIterator) Next() {
 }
 
 func (it *RegionIterator) Seek(key []byte) {
-	if err := util.CheckKeyInRegion(key, it.region); err != nil {
-		panic(err)
+	if bytes.Compare(key, it.region.StartKey) < 0 {
+		key = it.region.StartKey
 	}
 	it.iter.Seek(key)
 }
 
 func (it *RegionIterator) Rewind() {
-	it.iter.Rewind()
+	it.iter.Seek(it.region.StartKey)
 }
