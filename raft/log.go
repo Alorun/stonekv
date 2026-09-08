@@ -214,43 +214,6 @@ func (l *RaftLog) append(entries ...pb.Entry) {
 	if l.stabled >= first + conflict {
 		l.stabled = first + conflict - 1
 	}
-
-	// switch {
-	// case len(l.entries) == 0 || first > l.entries[len(l.entries) - 1].Index + 1:
-	// 	// Normally, add directly
-	// 	l.entries = append(l.entries, entries...)
-	// case first < off:
-	// 	// New entries will start from before the snapshot and replace all existing entries
-	// 	l.entries = make([]pb.Entry, len(entries))
-	// 	copy(l.entries, entries)
-	// 	l.stabled = first - 1	
-	// default:
-	// 	// Conflict exist, truncate the content after the conflict point
-	// 	pos := first - off
-	// 	last := uint64(len(l.entries))
-
-	// 	overlap := min(uint64(len(entries)), last - pos)
-	// 	var conflict uint64 = overlap
-	// 	for i := uint64(0); i < overlap; i++ {
-	// 		if l.entries[pos + i].Term != entries[i].Term {
-	// 			conflict = i
-	// 			break
-	// 		}
-	// 	}
-
-	// 	if conflict == uint64(len(entries)) && pos + overlap == last {
-	// 		return
-	// 	}
-
-	// 	truncateAt := pos + conflict
-	// 	if truncateAt > last {
-	// 		truncateAt = last
-	// 	}
-	// 	l.entries = append(l.entries[:truncateAt:truncateAt], entries[conflict:]...)
-	// 	if l.stabled >= first + conflict {
-	// 		l.stabled = first + conflict - 1
-	// 	}
-	// }
 }
 
 // maybeCommit attempts to advance commitIndex to toCommit
@@ -302,9 +265,8 @@ func (l* RaftLog) slice(lo, hi uint64) ([]pb.Entry, error) {
 	return l.entries[lo - off : hi - off], nil
 }
 
-// We need to compact the log entries in some point of time like
-// storage compact stabled log entries prevent the log entries
-// grow unlimitedly in memory
+// We need to compact the log entries in some point of time like storage compact
+// stabled log entries prevent the log entries grow unlimitedly in memory
 func (l *RaftLog) maybeCompact() {
 	firstIndex, err := l.storage.FirstIndex()
 	if err != nil {

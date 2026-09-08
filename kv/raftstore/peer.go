@@ -30,8 +30,7 @@ func NotifyReqRegionRemoved(regionId uint64, cb *message.Callback) {
 }
 
 // If we create the peer actively, like bootstrap/split/merge region, we should
-// use this function to create the peer. The region must contain the peer info
-// for this store.
+// use this function to create the peer. The region must contain the peer info for this store.
 func createPeer(storeID uint64, cfg *config.Config, sched chan<- worker.Task,
 	engines *engine_util.Engines, region *metapb.Region) (*peer, error) {
 	metaPeer := util.FindPeer(region, storeID)
@@ -186,10 +185,10 @@ func (p *peer) MaybeDestroy() bool {
 	return true
 }
 
-/// Does the real destroy worker.Task which includes:
-/// 1. Set the region to tombstone;
-/// 2. Clear data;
-/// 3. Notify all pending requests.
+// Does the real destroy worker.Task which includes:
+// 1. Set the region to tombstone;
+// 2. Clear data;
+// 3. Notify all pending requests.
 func (p *peer) Destroy(engine *engine_util.Engines, keepData bool) error {
 	start := time.Now()
 	region := p.Region()
@@ -294,8 +293,8 @@ func (p *peer) clearPeersStartPendingTime() {
 	}
 }
 
-/// Returns `true` if any new peer catches up with the leader in replicating logs.
-/// And updates `PeersStartPendingTime` if needed.
+// Returns `true` if any new peer catches up with the leader in replicating logs.
+// And updates `PeersStartPendingTime` if needed.
 func (p *peer) AnyNewPeerCatchUp(peerId uint64) bool {
 	if len(p.PeersStartPendingTime) == 0 {
 		return false

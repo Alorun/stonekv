@@ -35,22 +35,23 @@ func (r *regionItem) Less(other btree.Item) bool {
 
 type storeMeta struct {
 	sync.RWMutex
-	/// region start key -> region
+	// region start key -> region
 	regionRanges *btree.BTree
-	/// region_id -> region
+	// region_id -> region
 	regions map[uint64]*metapb.Region
-	/// `MsgRequestVote` messages from newly split Regions shouldn't be dropped if there is no
-	/// such Region in this store now. So the messages are recorded temporarily and will be handled later.
+	// `MsgRequestVote` messages from newly split Regions shouldn't be dropped if there is no
+	// such Region in this store now. So the messages are recorded temporarily and will be handled later.
 	pendingVotes []*rspb.RaftMessage
 }
 
 func newStoreMeta() *storeMeta {
 	return &storeMeta{
-		regionRanges: btree.New(2),
+		regionRanges: btree.New(2),	// the minimum is 2
 		regions:      map[uint64]*metapb.Region{},
 	}
 }
 
+// Assign the region ot the peer and log it.
 func (m *storeMeta) setRegion(region *metapb.Region, peer *peer) {
 	m.regions[region.Id] = region
 	peer.SetRegion(region)
@@ -155,8 +156,7 @@ func (bs *Raftstore) loadPeers() ([]*peer, error) {
 			}
 			ctx.storeMeta.regionRanges.ReplaceOrInsert(&regionItem{region: region})
 			ctx.storeMeta.regions[regionID] = region
-			// No need to check duplicated here, because we use region id as the key
-			// in DB.
+			// No need to check duplicated here, because we use region id as the key in DB.
 			regionPeers = append(regionPeers, peer)
 		}
 		return nil

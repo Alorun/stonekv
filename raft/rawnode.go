@@ -28,21 +28,18 @@ type Ready struct {
 	// It is not required to consume or store SoftState.
 	*SoftState
 
-	// The current state of a Node to be saved to stable storage BEFORE
-	// Messages are sent.
+	// The current state of a Node to be saved to stable storage BEFORE Messages are sent.
 	// HardState will be equal to empty state if there is no update.
 	pb.HardState
 
-	// Entries specifies entries to be saved to stable storage BEFORE
-	// Messages are sent.
+	// Entries specifies entries to be saved to stable storage BEFORE Messages are sent.
 	Entries []pb.Entry
 
 	// Snapshot specifies the snapshot to be saved to stable storage.
 	Snapshot pb.Snapshot
 
 	// CommittedEntries specifies entries to be committed to a
-	// store/state-machine. These have previously been committed to stable
-	// store.
+	// store/state-machine. These have previously been committed to stable store.
 	CommittedEntries []pb.Entry
 
 	// Messages specifies outbound messages to be sent AFTER Entries are
@@ -243,8 +240,7 @@ func (rn *RawNode) Advance(rd Ready) {
 	}
 }
 
-// GetProgress return the Progress of this node and its peers, if this
-// node is leader.
+// GetProgress return the Progress of this node and its peers, if this node is leader.
 func (rn *RawNode) GetProgress() map[uint64]Progress {
 	prs := make(map[uint64]Progress)
 	if rn.Raft.State == StateLeader {
